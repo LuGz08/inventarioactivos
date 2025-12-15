@@ -43,7 +43,9 @@ from .forms import (
     CategoriasForm, CategoriasFilterForm,
     EstadosForm, EstadosFilterForm,
     MarcasForm, MarcasFilterForm,
-    ModelosForm, ModelosFilterForm
+    ModelosForm, ModelosFilterForm,
+    CPUForm, CPUFilterForm,
+    GPUForm, GPUFilterForm,
 )
 
 
@@ -1466,3 +1468,193 @@ class MovimientosViewSet(viewsets.ModelViewSet):
     search_fields = ["sku", "proveedor", "referencia", "comentarios"]
     ordering_fields = ["fecha", "cantidad"]
     ordering = ["-fecha"]
+
+
+def cpu_list(request):
+    """Lista de CPUs con filtros"""
+    cpus = CPU.objects.all()
+    filter_form = CPUFilterForm(request.GET)
+
+    if filter_form.is_valid():
+        search = filter_form.cleaned_data.get("search")
+        if search:
+            cpus = cpus.filter(
+                models.Q(marca__icontains=search) | 
+                models.Q(modelo__icontains=search)
+            )
+
+    cpus = cpus.order_by("marca", "modelo")
+
+    context = {
+        "cpus": cpus,
+        "filter_form": filter_form,
+        "total_cpus": cpus.count(),
+    }
+    return render(request, "listar_cpu.html", context)
+
+
+def cpu_create(request):
+    """Crear nuevo CPU"""
+    if request.method == "POST":
+        form = CPUForm(request.POST)
+
+        if form.is_valid():
+            cpu = form.save()
+            messages.success(
+                request, f"CPU {cpu.marca} {cpu.modelo} creado exitosamente."
+            )
+            return redirect("cpu_list")
+        else:
+            messages.error(
+                request, "Error al crear el CPU. Verifica los datos."
+            )
+    else:
+        form = CPUForm()
+
+    context = {
+        "form": form,
+        "title": "Agregar CPU",
+        "action": "Crear",
+    }
+    return render(request, "agregar_cpu.html", context)
+
+
+def cpu_edit(request, pk):
+    """Editar CPU existente"""
+    cpu = get_object_or_404(CPU, pk=pk)
+
+    if request.method == "POST":
+        form = CPUForm(request.POST, instance=cpu)
+
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request, f"CPU {cpu.marca} {cpu.modelo} actualizado exitosamente."
+            )
+            return redirect("cpu_list")
+        else:
+            messages.error(request, "Error al actualizar el CPU.")
+    else:
+        form = CPUForm(instance=cpu)
+
+    context = {
+        "form": form,
+        "cpu": cpu,
+        "title": f"Editar CPU {cpu.marca} {cpu.modelo}",
+        "action": "Actualizar",
+    }
+    return render(request, "actualizar_cpu.html", context)
+
+
+def cpu_delete(request, pk):
+    """Eliminar CPU"""
+    cpu = get_object_or_404(CPU, pk=pk)
+
+    if request.method == "POST":
+        marca = cpu.marca
+        modelo = cpu.modelo
+        cpu.delete()
+        messages.success(
+            request, f"CPU {marca} {modelo} eliminado exitosamente."
+        )
+        return redirect("cpu_list")
+
+    context = {
+        "cpu": cpu,
+    }
+    return render(request, "eliminar_cpu.html", context)
+
+
+def gpu_list(request):
+    """Lista de GPUs con filtros"""
+    gpus = GPU.objects.all()
+    filter_form = GPUFilterForm(request.GET)
+
+    if filter_form.is_valid():
+        search = filter_form.cleaned_data.get("search")
+        if search:
+            gpus = gpus.filter(
+                models.Q(marca__icontains=search) | 
+                models.Q(modelo__icontains=search)
+            )
+
+    gpus = gpus.order_by("marca", "modelo")
+
+    context = {
+        "gpus": gpus,
+        "filter_form": filter_form,
+        "total_gpus": gpus.count(),
+    }
+    return render(request, "listar_gpu.html", context)
+
+
+def gpu_create(request):
+    """Crear nueva GPU"""
+    if request.method == "POST":
+        form = GPUForm(request.POST)
+
+        if form.is_valid():
+            gpu = form.save()
+            messages.success(
+                request, f"GPU {gpu.marca} {gpu.modelo} creada exitosamente."
+            )
+            return redirect("gpu_list")
+        else:
+            messages.error(
+                request, "Error al crear la GPU. Verifica los datos."
+            )
+    else:
+        form = GPUForm()
+
+    context = {
+        "form": form,
+        "title": "Agregar GPU",
+        "action": "Crear",
+    }
+    return render(request, "agregar_gpu.html", context)
+
+
+def gpu_edit(request, pk):
+    """Editar GPU existente"""
+    gpu = get_object_or_404(GPU, pk=pk)
+
+    if request.method == "POST":
+        form = GPUForm(request.POST, instance=gpu)
+
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request, f"GPU {gpu.marca} {gpu.modelo} actualizada exitosamente."
+            )
+            return redirect("gpu_list")
+        else:
+            messages.error(request, "Error al actualizar la GPU.")
+    else:
+        form = GPUForm(instance=gpu)
+
+    context = {
+        "form": form,
+        "gpu": gpu,
+        "title": f"Editar GPU {gpu.marca} {gpu.modelo}",
+        "action": "Actualizar",
+    }
+    return render(request, "actualizar_gpu.html", context)
+
+
+def gpu_delete(request, pk):
+    """Eliminar GPU"""
+    gpu = get_object_or_404(GPU, pk=pk)
+
+    if request.method == "POST":
+        marca = gpu.marca
+        modelo = gpu.modelo
+        gpu.delete()
+        messages.success(
+            request, f"GPU {marca} {modelo} eliminada exitosamente."
+        )
+        return redirect("gpu_list")
+
+    context = {
+        "gpu": gpu,
+    }
+    return render(request, "eliminar_gpu.html", context)

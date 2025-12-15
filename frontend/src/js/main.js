@@ -36,23 +36,32 @@ function cargarTopbar() {
 
   // Botones extras sólo en productos (listar, agregar, editar)
   let accionesProductos = "";
-  const esMarcaoModelo =
-    currentPath.includes("/paginas/marcas/listar.html") ||
-    currentPath.includes("/paginas/modelos/");
-  const esPaginaProductos =
-    currentPath.includes("/paginas/productos/") &&
-    (currentPath.endsWith("listar.html") ||
-      currentPath.endsWith("agregar.html") ||
-      currentPath.endsWith("editar.html"));
+  const esPaginaRelevante =
+    currentPath.includes("/paginas/productos/") ||
+    currentPath.includes("/paginas/marcas/") ||
+    currentPath.includes("/paginas/modelos/") ||
+    currentPath.includes("/paginas/cpu/") ||
+    currentPath.includes("/paginas/gpu/");
 
-  if (esPaginaProductos && !esMarcaoModelo) {
+  if (esPaginaRelevante) {
+    const activeMarcas = currentPath.includes("/paginas/marcas/") ? "active" : "";
+    const activeModelos = currentPath.includes("/paginas/modelos/") ? "active" : "";
+    const activeCpu = currentPath.includes("/paginas/cpu/") ? "active" : "";
+    const activeGpu = currentPath.includes("/paginas/gpu/") ? "active" : "";
+
     accionesProductos = `
       <div class="d-none d-md-flex align-items-center gap-2 me-3">
-        <a href="/paginas/marcas/listar.html" class="btn btn-outline-light btn-sm">
+        <a href="/paginas/marcas/listar.html" class="btn btn-outline-light btn-sm ${activeMarcas}">
           <i class="bi bi-tags"></i> Gestionar marcas
         </a>
-        <a href="/paginas/modelos/listar.html" class="btn btn-outline-light btn-sm">
-          <i class="bi bi-cpu"></i> Gestionar modelos
+        <a href="/paginas/modelos/listar.html" class="btn btn-outline-light btn-sm ${activeModelos}">
+          <i class="bi bi-diagram-3"></i> Gestionar modelos
+        </a>
+        <a href="/paginas/cpu/listar.html" class="btn btn-outline-light btn-sm ${activeCpu}">
+          <i class="bi bi-cpu"></i> Gestionar CPUs
+        </a>
+        <a href="/paginas/gpu/listar.html" class="btn btn-outline-light btn-sm ${activeGpu}">
+          <i class="bi bi-tags"></i> Gestionar GPUs
         </a>
       </div>
     `;

@@ -1,7 +1,8 @@
 from django import forms
 from .models import (
     Proveedores, Marcas, Categorias, 
-    Modelos, Estados, Productos
+    Modelos, Estados, Productos,
+    CPU, GPU,
 )
 
 
@@ -268,5 +269,87 @@ class EstadosFilterForm(forms.Form):
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': 'Nombre de estado...'
+        })
+    )
+
+class CPUForm(forms.ModelForm):
+    class Meta:
+        model = CPU
+        fields = ['marca', 'modelo']
+        widgets = {
+            'marca': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: Intel, AMD'
+            }),
+            'modelo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: Core i7-12700K'
+            }),
+        }
+        labels = {
+            'marca': 'Marca',
+            'modelo': 'Modelo',
+        }
+
+    def clean_marca(self):
+        marca = self.cleaned_data.get('marca')
+        if not marca or not marca.strip():
+            raise forms.ValidationError("La marca no puede estar vacía")
+        return marca.strip()
+
+    def clean_modelo(self):
+        modelo = self.cleaned_data.get('modelo')
+        if not modelo or not modelo.strip():
+            raise forms.ValidationError("El modelo no puede estar vacío")
+        return modelo.strip()
+
+
+class CPUFilterForm(forms.Form):
+    search = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Buscar por marca o modelo...'
+        })
+    )
+
+class GPUForm(forms.ModelForm):
+    class Meta:
+        model = GPU
+        fields = ['marca', 'modelo']
+        widgets = {
+            'marca': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: NVIDIA, AMD'
+            }),
+            'modelo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: RTX 4090'
+            }),
+        }
+        labels = {
+            'marca': 'Marca',
+            'modelo': 'Modelo',
+        }
+
+    def clean_marca(self):
+        marca = self.cleaned_data.get('marca')
+        if not marca or not marca.strip():
+            raise forms.ValidationError("La marca no puede estar vacía")
+        return marca.strip()
+
+    def clean_modelo(self):
+        modelo = self.cleaned_data.get('modelo')
+        if not modelo or not modelo.strip():
+            raise forms.ValidationError("El modelo no puede estar vacío")
+        return modelo.strip()
+
+
+class GPUFilterForm(forms.Form):
+    search = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Buscar por marca o modelo...'
         })
     )

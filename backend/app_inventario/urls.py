@@ -107,6 +107,17 @@ urlpatterns = [
     path('notificaciones/marcar-todas-leidas/', views.marcar_todas_leidas, name='marcar_todas_leidas'),
     path('notificaciones/no-leidas/', views.no_leidas, name='no_leidas'),
 
+    #   CPU
+    path('cpu/', views.cpu_list, name='cpu_list'),
+    path('cpu/agregar/', views.cpu_create, name='cpu_create'),
+    path('cpu/<int:pk>/editar/', views.cpu_edit, name='cpu_edit'),
+    path('cpu/<int:pk>/eliminar/', views.cpu_delete, name='cpu_delete'),
+
+    # GPU
+    path('gpu/', views.gpu_list, name='gpu_list'),
+    path('gpu/agregar/', views.gpu_create, name='gpu_create'),
+    path('gpu/<int:pk>/editar/', views.gpu_edit, name='gpu_edit'),
+    path('gpu/<int:pk>/eliminar/', views.gpu_delete, name='gpu_delete'),
 
     #   CONFIGURACION
     path('configuracion/', views.configuracion, name='configuracion'),

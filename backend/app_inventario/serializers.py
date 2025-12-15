@@ -214,12 +214,34 @@ class CPUSerializer(serializers.ModelSerializer):
         model = CPU
         fields = "__all__"
 
+    def validate_marca(self, value):
+        """Validar que la marca no esté vacía"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("La marca no puede estar vacía")
+        return value.strip()
+    
+    def validate_modelo(self, value):
+        """Validar que el modelo no esté vacío"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("El modelo no puede estar vacío")
+        return value.strip()
 
 class GPUSerializer(serializers.ModelSerializer):
     class Meta:
         model = GPU
         fields = "__all__"
 
+    def validate_marca(self, value):
+        """Validar que la marca no esté vacía"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("La marca no puede estar vacía")
+        return value.strip()
+    
+    def validate_modelo(self, value):
+        """Validar que el modelo no esté vacío"""
+        if not value or not value.strip():
+            raise serializers.ValidationError("El modelo no puede estar vacío")
+        return value.strip()
 
 # ============= SERIALIZERS DE COMPONENTES =============
 class ComponentesSerializer(serializers.ModelSerializer):
