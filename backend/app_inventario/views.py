@@ -21,7 +21,9 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import (
     Proveedores, Marcas, Categorias, Modelos, Estados, Productos,
     Usuarios, Asignaciones, Mantenciones, HistorialEstados,
-    Documentaciones, Notificaciones, LogAcceso, Sucursales, CodigoQR, Usuarios, Movimientos
+    Documentaciones, Notificaciones, LogAcceso, Sucursales, 
+    CodigoQR, Usuarios, Movimientos,
+    CPU, GPU, Componentes,
 )
 from .serializers import (
     ProveedoresSerializer, MarcasSerializer, CategoriasSerializer,
@@ -31,7 +33,9 @@ from .serializers import (
     AsignacionesSerializer, AsignacionesCreateSerializer,
     MantencionesSerializer,
     HistorialEstadosSerializer, HistorialEstadosCreateSerializer,
-    DocumentacionesSerializer, NotificacionesSerializer, LogAccesoSerializer, UsuariosUpdateSerializer, MovimientosSerializer
+    DocumentacionesSerializer, NotificacionesSerializer, LogAccesoSerializer, UsuariosUpdateSerializer, MovimientosSerializer,
+    CPUSerializer, GPUSerializer,
+    ComponentesSerializer, 
 )
 from .forms import (
     ProductoForm, ProductoFilterForm,
@@ -256,7 +260,26 @@ class ProductosViewSet(viewsets.ModelViewSet):
                 {"error": "Este producto no tiene una asignación activa"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
+    def create(self, request, *args, **kwargs):
+        componentes_data = request.data.pop("componentes", None)
+
+        # Crear producto normalmente
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        producto = serializer.save()
+
+        # Crear componentes si vienen en el JSON
+        if componentes_data:
+            componentes_data["producto_id"] = producto.id
+            comp_serializer = ComponentesSerializer(data=componentes_data)
+            comp_serializer.is_valid(raise_exception=True)
+            comp_serializer.save()
+
+        return Response(
+            ProductosDetailSerializer(producto).data,
+            status=status.HTTP_201_CREATED
+        )
 
     
 
@@ -580,6 +603,30 @@ class LogAccesoViewSet(viewsets.ReadOnlyModelViewSet):
         logs = self.get_queryset()[:50]
         serializer = self.get_serializer(logs, many=True)
         return Response(serializer.data)
+
+# ============= VIEWSETS DE CPU Y GPU =============
+class CPUViewSet(viewsets.ModelViewSet):
+    queryset = CPU.objects.all()
+    serializer_class = CPUSerializer
+
+
+class GPUViewSet(viewsets.ModelViewSet):
+    queryset = GPU.objects.all()
+    serializer_class = GPUSerializer
+
+# ============= VIEWSET DE COMPONENTES =============
+class ComponentesViewSet(viewsets.ModelViewSet):
+    queryset = Componentes.objects.all()
+    serializer_class = ComponentesSerializer
+
+
+
+
+
+
+
+
+
 
 
 # ============= VISTAS BASADAS EN TEMPLATES (HTML) =============

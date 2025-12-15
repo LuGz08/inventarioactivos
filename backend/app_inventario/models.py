@@ -370,3 +370,37 @@ class CodigoQR(models.Model):
 
         filename = f"qr_producto_{self.producto.id}.png"
         self.imagen_qr.save(filename, File(buffer), save=False)
+
+##########################################
+# 
+# TABLAS PARA MANEJAR ESPECIFICACIONES
+#
+##########################################
+
+class CPU(models.Model):
+    marca = models.CharField(max_length=100)
+    modelo = models.CharField(max_length=200)
+
+    def __str__(self):
+        return f"{self.marca} {self.modelo}"
+
+
+class GPU(models.Model):
+    marca = models.CharField(max_length=100)
+    modelo = models.CharField(max_length=200)
+
+    def __str__(self):
+        return f"{self.marca} {self.modelo}"
+    
+
+class Componentes(models.Model):
+    producto = models.OneToOneField(Productos, on_delete=models.CASCADE, related_name="componentes")
+
+    ram_gb = models.PositiveIntegerField(null=True, blank=True)
+    almacenamiento_gb = models.PositiveIntegerField(null=True, blank=True)
+
+    cpu = models.ForeignKey(CPU, on_delete=models.SET_NULL, null=True, blank=True, related_name="componentes")
+    gpu = models.ForeignKey(GPU, on_delete=models.SET_NULL, null=True, blank=True, related_name="componentes")
+
+    def __str__(self):
+        return f"Componentes de {self.producto.nro_serie}"

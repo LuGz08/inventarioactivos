@@ -4,7 +4,7 @@ from .models import (
     Proveedores, Marcas, Categorias, Modelos, Estados, 
     Productos, Usuarios, Asignaciones, Mantenciones, 
     HistorialEstados, Documentaciones, Notificaciones, LogAcceso,
-    Sucursales, CodigoQR, Movimientos
+    Sucursales, CodigoQR, Movimientos, CPU, GPU, Componentes,
 )
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -205,6 +205,55 @@ class UsuariosUpdateSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
+
+# ============= SERIALIZERS DE CPU Y GPU =============
+#=================== (COMPONENTES) ===================
+
+class CPUSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CPU
+        fields = "__all__"
+
+
+class GPUSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GPU
+        fields = "__all__"
+
+
+# ============= SERIALIZERS DE COMPONENTES =============
+class ComponentesSerializer(serializers.ModelSerializer):
+    cpu = CPUSerializer(read_only=True)
+    gpu = GPUSerializer(read_only=True)
+
+    cpu_id = serializers.PrimaryKeyRelatedField(
+        source="cpu", queryset=CPU.objects.all(), write_only=True, required=False, allow_null=True  # ✅ Permitir null
+    )
+    gpu_id = serializers.PrimaryKeyRelatedField(
+        source="gpu", queryset=GPU.objects.all(), write_only=True, required=False, allow_null=True  # ✅ Permitir null
+    )
+
+    # ⭐ IMPORTANTE: agregar soporte para asignar un producto
+    producto_id = serializers.PrimaryKeyRelatedField(
+        source="producto",
+        queryset=Productos.objects.all(),
+        write_only=True,
+        required=False
+    )
+
+    class Meta:
+        model = Componentes
+        fields = [
+            "id",
+            "ram_gb",
+            "almacenamiento_gb",
+            "cpu", "gpu",
+            "cpu_id", "gpu_id",
+            "producto_id",
+        ]
+
+
+
 # ============= SERIALIZERS DE PRODUCTOS =============
 
 class ProductosListSerializer(serializers.ModelSerializer):
@@ -215,6 +264,7 @@ class ProductosListSerializer(serializers.ModelSerializer):
     estado_nombre = serializers.CharField(source='estado.nombre', read_only=True)
     sucursal = SucursalSerializer(read_only=True)
     codigo_qr = CodigoQRSerializer(read_only=True)  
+    componentes = serializers.SerializerMethodField()
     class Meta:
         model = Productos
         fields = [
@@ -223,8 +273,31 @@ class ProductosListSerializer(serializers.ModelSerializer):
             'modelo', 'modelo_nombre',
             'categoria', 'categoria_nombre',
             'estado', 'estado_nombre',
-            'documento_factura', 'sucursal', 'codigo_qr', 'garantia_meses', 'estado_garantia'
+            'documento_factura', 'sucursal', 'codigo_qr',
+            'garantia_meses', 'estado_garantia',
+            'componentes',
         ]
+    
+    def get_componentes(self, obj):
+        """Obtener componentes de forma segura"""
+        if not hasattr(obj, 'componentes') or not obj.componentes:
+            return None
+            
+        comp = obj.componentes
+        return {
+            'ram_gb': comp.ram_gb,
+            'almacenamiento_gb': comp.almacenamiento_gb,
+            'cpu': {
+                'id': comp.cpu.id,
+                'marca': comp.cpu.marca,
+                'modelo': comp.cpu.modelo
+            } if comp.cpu else None,
+            'gpu': {
+                'id': comp.gpu.id,
+                'marca': comp.gpu.marca,
+                'modelo': comp.gpu.modelo
+            } if comp.gpu else None
+        }
     
     def get_modelo_nombre(self, obj):
         return f"{obj.modelo.marca.nombre} {obj.modelo.nombre}"
@@ -236,6 +309,7 @@ class ProductosDetailSerializer(serializers.ModelSerializer):
     categoria = CategoriasSerializer(read_only=True)
     estado = EstadosSerializer(read_only=True)
     sucursal = SucursalSerializer(read_only=True)
+    componentes = ComponentesSerializer(read_only=True)
 
     # QR asociado al producto (OneToOne: related_name='qr')
     codigo_qr = CodigoQRSerializer(read_only=True)
@@ -260,6 +334,7 @@ class ProductosDetailSerializer(serializers.ModelSerializer):
             "categoria",
             "estado",
             "sucursal",
+            "componentes",
             "codigo_qr",
             "asignaciones",
             "mantenciones",
@@ -293,9 +368,28 @@ class ProductosDetailSerializer(serializers.ModelSerializer):
 
 class ProductosCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer para crear/actualizar productos"""
+    componentes = ComponentesSerializer(write_only=True, required=False)
+
     class Meta:
         model = Productos
         fields = '__all__'
+    
+    def update(self, instance, validated_data):
+        componentes_data = validated_data.pop('componentes', None)
+        
+        # Actualizar producto
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Actualizar o crear componentes
+        if componentes_data:
+            Componentes.objects.update_or_create(
+                producto=instance,
+                defaults=componentes_data
+            )
+        
+        return instance
 
 
 # ============= SERIALIZERS DE ASIGNACIONES =============
@@ -502,3 +596,6 @@ class MovimientosSerializer(serializers.ModelSerializer):
     class Meta:
         model = Movimientos
         fields = "__all__"
+
+
+

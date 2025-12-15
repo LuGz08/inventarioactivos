@@ -40,6 +40,11 @@
             <div class="card p-4">
               <form id="formEditarProducto">
 
+                <!-- DATOS BÁSICOS -->
+                <h5 class="fw-bold text-primary mb-3">
+                  <i class="bi bi-box-seam"></i> Datos básicos
+                </h5>
+
                 <div class="row g-3">
 
                   <div class="col-md-4">
@@ -99,9 +104,60 @@
 
                 </div>
 
+                <!-- COMPONENTES -->
+                <hr class="my-4">
+                <h5 class="fw-bold text-primary mb-3">
+                  <i class="bi bi-cpu"></i> Componentes
+                </h5>
+
+                <div class="row g-3">
+
+                  <!-- CPU -->
+                  <div class="col-md-6">
+                    <label class="form-label">CPU</label>
+                    <div class="input-group">
+                      <select id="cpu" class="form-select">
+                        <option value="">Seleccione CPU...</option>
+                      </select>
+                      <button type="button" class="btn btn-outline-primary" id="btnNuevaCPU">
+                        <i class="bi bi-plus-circle"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- GPU -->
+                  <div class="col-md-6">
+                    <label class="form-label">GPU</label>
+                    <div class="input-group">
+                      <select id="gpu" class="form-select">
+                        <option value="">Seleccione GPU...</option>
+                      </select>
+                      <button type="button" class="btn btn-outline-primary" id="btnNuevaGPU">
+                        <i class="bi bi-plus-circle"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- RAM -->
+                  <div class="col-md-6">
+                    <label class="form-label">RAM (GB)</label>
+                    <input type="number" class="form-control" id="ram" placeholder="8, 16, 32..." min="1">
+                  </div>
+
+                  <!-- ALMACENAMIENTO -->
+                  <div class="col-md-6">
+                    <label class="form-label">Almacenamiento (GB)</label>
+                    <input type="number" class="form-control" id="almacenamiento" placeholder="256, 512, 1024..." min="1">
+                  </div>
+
+                </div>
+
+                <!-- BOTONES -->
                 <div class="mt-4 d-flex justify-content-end gap-2">
                   <a href="listar.html" class="btn btn-outline-secondary">Cancelar</a>
-                  <button type="submit" class="btn btn-primary">Actualizar</button>
+                  <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> Actualizar
+                  </button>
                 </div>
               </form>
             </div>
@@ -127,6 +183,66 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- MODAL: NUEVA CPU -->
+  <div class="modal fade" id="modalNuevaCPU" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-cpu"></i> Nueva CPU</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formNuevaCPU">
+            <div class="mb-3">
+              <label class="form-label">Marca</label>
+              <input type="text" id="cpuNombre" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Modelo</label>
+              <input type="text" id="cpuGeneracion" class="form-control" required>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btnGuardarCPU">
+            <i class="bi bi-check-circle"></i> Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: NUEVA GPU -->
+  <div class="modal fade" id="modalNuevaGPU" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-gpu-card"></i> Nueva GPU</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formNuevaGPU">
+            <div class="mb-3">
+              <label class="form-label">Marca</label>
+              <input type="text" id="gpuNombre" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Modelo</label>
+              <input type="text" id="gpuTipo" class="form-control" required>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btnGuardarGPU">
+            <i class="bi bi-check-circle"></i> Guardar
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
 <!-- SCRIPTS -->

@@ -50,13 +50,23 @@ function initListar() {
   const btnTarjetas = document.getElementById("btnTarjetas");
   const vistaTabla = document.getElementById("vistaTabla");
   const vistaTarjetas = document.getElementById("vistaTarjetas");
+  const vistaTablaComponentes = document.getElementById("vistaTablaComponentes");
 
-  // toggle tabla/tarjetas
-  if (btnTabla && btnTarjetas && vistaTabla && vistaTarjetas) {
+  // Toggle tabla/tarjetas (modificar para incluir tabla de componentes)
+  if (btnTabla && btnTarjetas && vistaTabla && vistaTarjetas && vistaTablaComponentes) {
     btnTabla.addEventListener("click", () => {
       btnTabla.classList.add("active");
       btnTarjetas.classList.remove("active");
-      vistaTabla.classList.remove("d-none");
+      
+      const mostrarComponentes = document.getElementById("btnFiltroComponentes").classList.contains("active");
+      
+      if (mostrarComponentes) {
+        vistaTablaComponentes.classList.remove("d-none");
+        vistaTabla.classList.add("d-none");
+      } else {
+        vistaTabla.classList.remove("d-none");
+        vistaTablaComponentes.classList.add("d-none");
+      }
       vistaTarjetas.classList.add("d-none");
     });
 
@@ -64,6 +74,7 @@ function initListar() {
       btnTarjetas.classList.add("active");
       btnTabla.classList.remove("active");
       vistaTabla.classList.add("d-none");
+      vistaTablaComponentes.classList.add("d-none");
       vistaTarjetas.classList.remove("d-none");
     });
   }
@@ -73,6 +84,15 @@ function initListar() {
   const filtroSucursal = document.getElementById("filtroSucursal");
   const filtroEstado = document.getElementById("filtroEstado");
 
+  // ✅ Nuevos filtros de componentes
+  const filtroCPU = document.getElementById("filtroCPU");
+  const filtroGPU = document.getElementById("filtroGPU");
+  const filtroRAMMin = document.getElementById("filtroRAMMin");
+  const filtroAlmMin = document.getElementById("filtroAlmMin");
+  const btnFiltroComponentes = document.getElementById("btnFiltroComponentes");
+  const btnLimpiarFiltrosComp = document.getElementById("btnLimpiarFiltrosComp");
+
+
   const reCargar = () => aplicarFiltrosYRender();
 
   if (inputBuscar) inputBuscar.addEventListener("input", reCargar);
@@ -80,9 +100,106 @@ function initListar() {
   if (filtroSucursal) filtroSucursal.addEventListener("change", reCargar);
   if (filtroEstado) filtroEstado.addEventListener("change", reCargar);
 
+  // ✅ Listeners de filtros de componentes
+  if (filtroCPU) filtroCPU.addEventListener("change", reCargar);
+  if (filtroGPU) filtroGPU.addEventListener("change", reCargar);
+  if (filtroRAMMin) filtroRAMMin.addEventListener("input", reCargar);
+  if (filtroAlmMin) filtroAlmMin.addEventListener("input", reCargar);
+  
+  // ✅ Toggle de vista de componentes
+  if (btnFiltroComponentes) {
+    btnFiltroComponentes.addEventListener("click", () => {
+      const filtrosDiv = document.getElementById("filtrosComponentes");
+      
+      // Alternar el estado activo del botón
+      btnFiltroComponentes.classList.toggle("active");
+      
+      // Alternar la visibilidad del panel de filtros
+      if (btnFiltroComponentes.classList.contains("active")) {
+        filtrosDiv.classList.add("show");
+      } else {
+        filtrosDiv.classList.remove("show");
+      }
+      
+      // Cambiar entre tabla normal y tabla con componentes
+      const vistaTabla = document.getElementById("vistaTabla");
+      const vistaTablaComponentes = document.getElementById("vistaTablaComponentes");
+      const vistaTarjetas = document.getElementById("vistaTarjetas");
+      
+      if (btnFiltroComponentes.classList.contains("active")) {
+        vistaTabla.classList.add("d-none");
+        vistaTablaComponentes.classList.remove("d-none");
+        vistaTarjetas.classList.add("d-none");
+        
+        // Asegurar que el botón tabla esté activo
+        document.getElementById("btnTabla")?.classList.add("active");
+        document.getElementById("btnTarjetas")?.classList.remove("active");
+      } else {
+        vistaTablaComponentes.classList.add("d-none");
+        vistaTabla.classList.remove("d-none");
+      }
+      
+      reCargar();
+    });
+  }
+  // ✅ Limpiar filtros de componentes
+  if (btnLimpiarFiltrosComp) {
+    btnLimpiarFiltrosComp.addEventListener("click", () => {
+      if (filtroCPU) filtroCPU.value = "";
+      if (filtroGPU) filtroGPU.value = "";
+      if (filtroRAMMin) filtroRAMMin.value = "";
+      if (filtroAlmMin) filtroAlmMin.value = "";
+      reCargar();
+    });
+  }
+
   cargarProductosLista();
 }
 
+
+// ✅ Agregar función para poblar filtros de componentes
+function poblarFiltrosComponentes() {
+  const filtroCPU = document.getElementById("filtroCPU");
+  const filtroGPU = document.getElementById("filtroGPU");
+  
+  if (!productosCache.length) return;
+  
+  // Extraer CPUs únicas
+  const cpus = new Map();
+  const gpus = new Map();
+  
+  productosCache.forEach(p => {
+    if (p.componentes) {
+      if (p.componentes.cpu) {
+        const cpu = p.componentes.cpu;
+        cpus.set(cpu.id, `${cpu.marca} ${cpu.modelo}`);
+      }
+      if (p.componentes.gpu) {
+        const gpu = p.componentes.gpu;
+        gpus.set(gpu.id, `${gpu.marca} ${gpu.modelo}`);
+      }
+    }
+  });
+  
+  // Poblar select de CPUs
+  if (filtroCPU) {
+    filtroCPU.innerHTML = `<option value="">Todas las CPUs</option>`;
+    cpus.forEach((nombre, id) => {
+      filtroCPU.innerHTML += `<option value="${id}">${nombre}</option>`;
+    });
+  }
+  
+  // Poblar select de GPUs
+  if (filtroGPU) {
+    filtroGPU.innerHTML = `<option value="">Todas las GPUs</option>`;
+    gpus.forEach((nombre, id) => {
+      filtroGPU.innerHTML += `<option value="${id}">${nombre}</option>`;
+    });
+  }
+}
+
+
+// Modificar cargarProductosLista para incluir filtros de componentes:
 async function cargarProductosLista() {
   const tbody = document.getElementById("tbodyProductos");
   const cardsCont = document.getElementById("cardsProductos");
@@ -95,10 +212,11 @@ async function cargarProductosLista() {
   }
 
   try {
-    const res = await API.get("productos/"); // GET /api/api/productos/
+    const res = await API.get("productos/");
     productosCache = Array.isArray(res) ? res : (res.results || []);
 
     poblarFiltrosDesdeProductos();
+    poblarFiltrosComponentes(); // ✅ Agregar esta línea
     aplicarFiltrosYRender();
     aplicarFiltroDesdeURL();
 
@@ -205,6 +323,7 @@ function aplicarFiltroDesdeURL() {
   }
 }
 
+// ✅ Modificar aplicarFiltrosYRender para incluir filtros de componentes
 function aplicarFiltrosYRender() {
   function getNombreCampo(campo, fallback = "—") {
     if (campo === null || campo === undefined) return fallback;
@@ -222,21 +341,30 @@ function aplicarFiltrosYRender() {
   const filtroCategoria = document.getElementById("filtroCategoria");
   const filtroSucursal = document.getElementById("filtroSucursal");
   const filtroEstado = document.getElementById("filtroEstado");
+  
+  // ✅ Filtros de componentes
+  const filtroCPU = document.getElementById("filtroCPU");
+  const filtroGPU = document.getElementById("filtroGPU");
+  const filtroRAMMin = document.getElementById("filtroRAMMin");
+  const filtroAlmMin = document.getElementById("filtroAlmMin");
 
   const texto = (inputBuscar?.value || "").toLowerCase();
   const cat = filtroCategoria?.value || "";
   const suc = filtroSucursal?.value || "";
   const est = filtroEstado?.value || "";
+  
+  // ✅ Valores de filtros de componentes
+  const cpuId = filtroCPU?.value || "";
+  const gpuId = filtroGPU?.value || "";
+  const ramMin = filtroRAMMin?.value ? parseInt(filtroRAMMin.value) : null;
+  const almMin = filtroAlmMin?.value ? parseInt(filtroAlmMin.value) : null;
 
   const filtrados = productosCache.filter(p => {
     const t = texto.trim();
 
-    const categoriaTexto =
-      p.categoria_nombre || getNombreCampo(p.categoria, "");
-    const sucursalTexto =
-      p.sucursal_nombre || getNombreCampo(p.sucursal, "");
-    const estadoTexto =
-      p.estado_nombre || getNombreCampo(p.estado, "");
+    const categoriaTexto = p.categoria_nombre || getNombreCampo(p.categoria, "");
+    const sucursalTexto = p.sucursal_nombre || getNombreCampo(p.sucursal, "");
+    const estadoTexto = p.estado_nombre || getNombreCampo(p.estado, "");
 
     const coincideTexto =
       !t ||
@@ -248,11 +376,56 @@ function aplicarFiltrosYRender() {
     const coincideCat = !cat || categoriaTexto === cat;
     const coincideSuc = !suc || sucursalTexto === suc;
     const coincideEst = !est || estadoTexto === est;
+    
+    // ✅ Filtros de componentes
+    let coincideComponentes = true;
+    
+    if (cpuId || gpuId || ramMin || almMin) {
+      const comp = p.componentes;
+      
+      if (!comp) {
+        coincideComponentes = false;
+      } else {
+        if (cpuId && (!comp.cpu || comp.cpu.id != cpuId)) {
+          coincideComponentes = false;
+        }
+        if (gpuId && (!comp.gpu || comp.gpu.id != gpuId)) {
+          coincideComponentes = false;
+        }
+        if (ramMin && (!comp.ram_gb || comp.ram_gb < ramMin)) {
+          coincideComponentes = false;
+        }
+        if (almMin && (!comp.almacenamiento_gb || comp.almacenamiento_gb < almMin)) {
+          coincideComponentes = false;
+        }
+      }
+    }
 
-    return coincideTexto && coincideCat && coincideSuc && coincideEst;
+    return coincideTexto && coincideCat && coincideSuc && coincideEst && coincideComponentes;
   });
 
-  renderTablaProductos(filtrados);
+  const btnFiltroComponentes = document.getElementById("btnFiltroComponentes");
+  const modoComponentes = btnFiltroComponentes.classList.contains("active");
+
+  const vistaTabla = document.getElementById("vistaTabla");
+  const vistaTablaComponentes = document.getElementById("vistaTablaComponentes");
+
+  if (modoComponentes) {
+    // Mostrar tabla de componentes
+    vistaTabla.classList.add("d-none");
+    vistaTablaComponentes.classList.remove("d-none");
+
+    renderTablaProductosConComponentes(filtrados);
+
+  } else {
+    // Mostrar tabla normal
+    vistaTabla.classList.remove("d-none");
+    vistaTablaComponentes.classList.add("d-none");
+
+    renderTablaProductos(filtrados);
+  }
+
+  // Tarjetas siempre se renderizan
   renderTarjetasProductos(filtrados);
 }
 
@@ -304,6 +477,88 @@ function renderTablaProductos(lista) {
   });
 }
 
+
+// ✅ Nueva función para renderizar tabla con componentes
+function renderTablaProductosConComponentes(lista) {
+  const tbody = document.getElementById("tbodyProductosComponentes");
+  if (!tbody) return;
+
+  if (!lista.length) {
+    tbody.innerHTML = `<tr><td colspan="10">No hay productos que coincidan con el filtro.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = "";
+
+  lista.forEach(p => {
+    const tr = document.createElement("tr");
+
+    const sucursalTexto = p.sucursal_nombre || getNombreCampo(p.sucursal, "—");
+    const estadoTexto = p.estado_nombre || getNombreCampo(p.estado, "—");
+
+    // Extraer datos de componentes
+    let cpuTexto = "—";
+    let gpuTexto = "—";
+    let ramTexto = "—";
+    let almTexto = "—";
+
+    if (p.componentes) {
+      const c = p.componentes;
+      
+      if (c.cpu) {
+        cpuTexto = `${c.cpu.marca} ${c.cpu.modelo}`;
+      }
+      
+      if (c.gpu) {
+        gpuTexto = `${c.gpu.marca} ${c.gpu.modelo}`;
+      }
+      
+      if (c.ram_gb) {
+        ramTexto = `${c.ram_gb} GB`;
+      }
+      
+      if (c.almacenamiento_gb) {
+        almTexto = `${c.almacenamiento_gb} GB`;
+      }
+    }
+
+    tr.innerHTML = `
+      <td><input type="checkbox"></td>
+      <td>${p.nro_serie}</td>
+      <td>${nombreProducto(p)}</td>
+      <td class="componentes-col" title="${cpuTexto}">
+        <small>${cpuTexto}</small>
+      </td>
+      <td class="componentes-col" title="${gpuTexto}">
+        <small>${gpuTexto}</small>
+      </td>
+      <td class="componentes-col">
+        <small>${ramTexto}</small>
+      </td>
+      <td class="componentes-col">
+        <small>${almTexto}</small>
+      </td>
+      <td>${sucursalTexto}</td>
+      <td>${estadoTexto}</td>
+      <td class="d-flex gap-1">
+        <a href="detalle.html?id=${p.id}" class="btn btn-sm btn-primary">
+          <i class="bi bi-eye"></i>
+        </a>
+        <a href="editar.html?id=${p.id}" class="btn btn-sm btn-warning">
+          <i class="bi bi-pencil"></i>
+        </a>
+        <a href="eliminar.html?id=${p.id}" class="btn btn-sm btn-danger">
+          <i class="bi bi-trash"></i>
+        </a>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+
+// ✅ Actualizar renderTarjetasProductos para mostrar componentes
 function renderTarjetasProductos(lista) {
   function getNombreCampo(campo, fallback = "—") {
     if (campo === null || campo === undefined) return fallback;
@@ -334,12 +589,24 @@ function renderTarjetasProductos(lista) {
     const garantiaValor = p.garantia_meses ?? p.garantia ?? null;
     const garantiaTexto =
       garantiaValor === null || garantiaValor === "" ? "—" : `${garantiaValor} meses`;
-    const categoriaTexto =
-      p.categoria_nombre || getNombreCampo(p.categoria, "—");
-    const sucursalTexto =
-      p.sucursal_nombre || getNombreCampo(p.sucursal, "Sin sucursal");
-    const estadoTexto =
-      p.estado_nombre || getNombreCampo(p.estado, "—");
+    const categoriaTexto = p.categoria_nombre || getNombreCampo(p.categoria, "—");
+    const sucursalTexto = p.sucursal_nombre || getNombreCampo(p.sucursal, "Sin sucursal");
+    const estadoTexto = p.estado_nombre || getNombreCampo(p.estado, "—");
+
+    // ✅ Agregar información de componentes en las tarjetas
+    let componentesHTML = "";
+    if (p.componentes) {
+      const c = p.componentes;
+      componentesHTML = `
+        <hr class="my-2">
+        <div class="text-start small text-muted">
+          ${c.cpu ? `<div><i class="bi bi-cpu"></i> ${c.cpu.marca} ${c.cpu.modelo}</div>` : ""}
+          ${c.gpu ? `<div><i class="bi bi-gpu-card"></i> ${c.gpu.marca} ${c.gpu.modelo}</div>` : ""}
+          ${c.ram_gb ? `<div><i class="bi bi-memory"></i> RAM: ${c.ram_gb} GB</div>` : ""}
+          ${c.almacenamiento_gb ? `<div><i class="bi bi-hdd"></i> ${c.almacenamiento_gb} GB</div>` : ""}
+        </div>
+      `;
+    }
 
     col.innerHTML = `
       <div class="card p-3 h-100 text-center">
@@ -348,6 +615,8 @@ function renderTarjetasProductos(lista) {
         <span class="badge bg-light text-dark mb-1">${sucursalTexto}</span>
         <p class="small mb-1"><strong>Estado:</strong> ${estadoTexto}</p>
         <p class="small mb-1"><strong>Garantía:</strong> ${garantiaTexto}</p>
+        
+        ${componentesHTML}
 
         <div class="d-flex justify-content-center gap-1 mt-2">
           <a href="detalle.html?id=${p.id}" class="btn btn-sm btn-primary">
@@ -366,7 +635,6 @@ function renderTarjetasProductos(lista) {
     cont.appendChild(col);
   });
 }
-
 // -----------------------------------------------------------
 // DETALLE (detalle.html)
 // -----------------------------------------------------------
@@ -536,6 +804,33 @@ async function cargarDetalleProducto(id) {
     const p = await API.get(`productos/${id}/`); // GET /api/api/productos/<id>/
     productoActualDetalle = p; // guardamos para cambio de estado
 
+    // ----------------------
+    //   MOSTRAR COMPONENTES
+    // ----------------------
+    const comp = p.componentes;   // viene anidado desde DRF
+
+    const lista = document.getElementById("componentesProd");
+    lista.innerHTML = ""; // limpiar
+
+    if (!comp) {
+        lista.innerHTML = `<li class="text-muted">Este producto no tiene componentes registrados.</li>`;
+    } else {
+        lista.innerHTML += `<li><strong>RAM:</strong> ${comp.ram_gb ?? "—"} GB</li>`;
+        lista.innerHTML += `<li><strong>Almacenamiento:</strong> ${comp.almacenamiento_gb ?? "—"} GB</li>`;
+
+        if (comp.cpu) {
+            lista.innerHTML += `<li><strong>CPU:</strong> ${comp.cpu.marca} ${comp.cpu.modelo}</li>`;
+        } else {
+            lista.innerHTML += `<li><strong>CPU:</strong> —</li>`;
+        }
+
+        if (comp.gpu) {
+            lista.innerHTML += `<li><strong>GPU:</strong> ${comp.gpu.marca} ${comp.gpu.modelo}</li>`;
+        } else {
+            lista.innerHTML += `<li><strong>GPU:</strong> —</li>`;
+        }
+    }
+
     const elNombre = document.getElementById("nombreProd");
     const elCodigo = document.getElementById("codigoProd");
     const elCategoria = document.getElementById("categoriaProd");
@@ -574,10 +869,7 @@ async function cargarDetalleProducto(id) {
     if (elGarantia) elGarantia.textContent =
       (p.garantia_meses ?? "") !== "" ? `${p.garantia_meses} meses` : "—";
 
-    if (elComponentes) {
-      elComponentes.innerHTML =
-        `<li class="text-muted">Sin detalle de componentes en la API.</li>`;
-    }
+    
 
     // Historial de estados
     if (elHistorial) {
@@ -768,7 +1060,7 @@ function initAgregar() {
   const form = document.getElementById("formProducto");
   if (!form) return;
 
-  // Carga de selects desde la API
+  // Carga de selects desde la API (incluye CPU/GPU ahora)
   cargarSelectsProducto().then(() => {
     // Si viene un código desde escáner QR
     const codigoParam = getParam("codigo");
@@ -777,6 +1069,9 @@ function initAgregar() {
       if (inputCodigo) inputCodigo.value = codigoParam;
     }
   });
+
+  // Init modals (si existen)
+  initComponentesModales();
 
   form.addEventListener("submit", onSubmitNuevoProducto);
 }
@@ -794,6 +1089,12 @@ async function onSubmitNuevoProducto(e) {
   const mesesGarantia = document.getElementById("mesesGarantia")?.value;
   const factura = document.getElementById("factura")?.value;
 
+  // Componentes
+  const cpu = document.getElementById("cpu")?.value;
+  const gpu = document.getElementById("gpu")?.value;
+  const ram = document.getElementById("ram")?.value;
+  const almacenamiento = document.getElementById("almacenamiento")?.value;
+
   if (
     !codigo ||
     !proveedor ||
@@ -804,8 +1105,15 @@ async function onSubmitNuevoProducto(e) {
     !mesesGarantia ||
     !factura
   ) {
-    alert("Completa todos los campos obligatorios.");
+    alert("Completa todos los campos obligatorios del producto.");
     return;
+  }
+
+  // Validar componentes (según tu HTML estaban marcados como required)
+  if (!cpu || !gpu || !ram || !almacenamiento) {
+    if (!confirm("No completaste todos los campos de componentes. ¿Deseas continuar sin componentes?")) {
+      return;
+    }
   }
 
   const payload = {
@@ -818,6 +1126,13 @@ async function onSubmitNuevoProducto(e) {
     fecha_compra: fechaCompra,
     garantia_meses: parseInt(mesesGarantia),
     documento_factura: factura,
+    // Enviamos componentes como objeto anidado (backend ya lo maneja)
+    componentes: {
+      ram_gb: ram ? parseInt(ram) : null,
+      almacenamiento_gb: almacenamiento ? parseInt(almacenamiento) : null,
+      cpu_id: cpu ? parseInt(cpu) : null,
+      gpu_id: gpu ? parseInt(gpu) : null
+    }
   };
 
   try {
@@ -826,7 +1141,9 @@ async function onSubmitNuevoProducto(e) {
     window.location.href = "listar.html";
   } catch (err) {
     console.error("Error al crear producto:", err);
-    alert("No se pudo crear el producto. Revisa los datos.");
+    // Intentar mostrar mensaje de error si viene del backend
+    const msg = err?.message || "No se pudo crear el producto. Revisa los datos.";
+    alert(msg);
   }
 }
 
@@ -848,6 +1165,9 @@ function initEditar() {
   cargarSelectsProducto().then(() => {
     cargarDatosEdicion(id);
   });
+
+  // ✅ AGREGAR ESTA LÍNEA para inicializar los modales de CPU/GPU
+  initComponentesModales();
 
   form.addEventListener("submit", e => onSubmitEditarProducto(e, id));
 }
@@ -887,6 +1207,31 @@ async function cargarDatosEdicion(id) {
     if (mesesGarantia) mesesGarantia.value = p.garantia_meses;
     if (factura) factura.value = p.documento_factura;
 
+    // Si hay componentes en la respuesta, poblarlos en el form de edición
+    if (p.componentes) {
+      const c = p.componentes;
+      const cpuSelect = document.getElementById("cpu");
+      const gpuSelect = document.getElementById("gpu");
+      const ramInput = document.getElementById("ram");
+      const almInput = document.getElementById("almacenamiento");
+
+      if (cpuSelect && c.cpu) {
+        // si el option no existe todavía lo añadimos
+        if (!Array.from(cpuSelect.options).some(o => o.value == c.cpu.id)) {
+          cpuSelect.innerHTML += `<option value="${c.cpu.id}">${c.cpu.marca} ${c.cpu.modelo}</option>`;
+        }
+        cpuSelect.value = c.cpu.id;
+      }
+      if (gpuSelect && c.gpu) {
+        if (!Array.from(gpuSelect.options).some(o => o.value == c.gpu.id)) {
+          gpuSelect.innerHTML += `<option value="${c.gpu.id}">${c.gpu.marca} ${c.gpu.modelo}</option>`;
+        }
+        gpuSelect.value = c.gpu.id;
+      }
+      if (ramInput) ramInput.value = c.ram_gb ?? "";
+      if (almInput) almInput.value = c.almacenamiento_gb ?? "";
+    }
+
   } catch (err) {
     console.error("Error al cargar producto para editar:", err);
     alert("No se pudo cargar el producto.");
@@ -905,6 +1250,12 @@ async function onSubmitEditarProducto(e, id) {
   const fechaCompra = document.getElementById("fechaCompra")?.value;
   const mesesGarantia = document.getElementById("mesesGarantia")?.value;
   const factura = document.getElementById("factura")?.value;
+
+  // Componentes
+  const cpu = document.getElementById("cpu")?.value;
+  const gpu = document.getElementById("gpu")?.value;
+  const ram = document.getElementById("ram")?.value;
+  const almacenamiento = document.getElementById("almacenamiento")?.value;
 
   if (
     !codigo ||
@@ -930,6 +1281,12 @@ async function onSubmitEditarProducto(e, id) {
     fecha_compra: fechaCompra,
     garantia_meses: parseInt(mesesGarantia),
     documento_factura: factura,
+    componentes: {
+      ram_gb: ram ? parseInt(ram) : null,
+      almacenamiento_gb: almacenamiento ? parseInt(almacenamiento) : null,
+      cpu_id: cpu ? parseInt(cpu) : null,
+      gpu_id: gpu ? parseInt(gpu) : null
+    }
   };
 
   try {
@@ -1014,7 +1371,7 @@ function initEliminar() {
 
 // -----------------------------------------------------------
 // Carga de selects (proveedor, modelo, categoria, sucursal, estado)
-// para agregar/editar
+// para agregar/editar (ahora incluye cpu/gpu)
 // -----------------------------------------------------------
 
 async function cargarSelectsProducto() {
@@ -1025,6 +1382,8 @@ async function cargarSelectsProducto() {
       cargarSelect("categoria", "categorias/"),
       cargarSelect("sucursal", "sucursales/", true), // opcional
       cargarSelect("estado", "estados/"),
+      cargarSelectCPU(), // cpu
+      cargarSelectGPU(), // gpu
     ]);
   } catch (err) {
     console.error("Error al cargar selects de producto:", err);
@@ -1048,3 +1407,172 @@ async function cargarSelect(elementId, endpoint, allowEmpty = false) {
     select.innerHTML += `<option value="${item.id}">${item.nombre}</option>`;
   });
 }
+
+// -----------------------------------------------------------
+// CPU / GPU helpers (cargar selects y crear desde modal)
+// -----------------------------------------------------------
+
+async function cargarSelectCPU() {
+  const select = document.getElementById("cpu");
+  if (!select) return;
+
+  try {
+    let data = await API.get("cpu/");
+    data = Array.isArray(data) ? data : (data.results || []);
+    select.innerHTML = `<option value="">Seleccione CPU...</option>`;
+    data.forEach(item => {
+      select.innerHTML += `<option value="${item.id}">${item.marca} ${item.modelo}</option>`;
+    });
+  } catch (err) {
+    console.error("Error al cargar CPUs:", err);
+    select.innerHTML = `<option value="">Error al cargar CPUs</option>`;
+  }
+}
+
+async function cargarSelectGPU() {
+  const select = document.getElementById("gpu");
+  if (!select) return;
+
+  try {
+    let data = await API.get("gpu/");
+    data = Array.isArray(data) ? data : (data.results || []);
+    select.innerHTML = `<option value="">Seleccione GPU...</option>`;
+    data.forEach(item => {
+      select.innerHTML += `<option value="${item.id}">${item.marca} ${item.modelo}</option>`;
+    });
+  } catch (err) {
+    console.error("Error al cargar GPUs:", err);
+    select.innerHTML = `<option value="">Error al cargar GPUs</option>`;
+  }
+}
+
+// -----------------------------------------------------------
+// Modales de componentes (crear CPU/GPU desde el formulario)
+// -----------------------------------------------------------
+
+function initComponentesModales() {
+  // CPU modal
+  const btnNuevaCPU = document.getElementById("btnNuevaCPU");
+  const modalCPUEl = document.getElementById("modalNuevaCPU");
+  const btnGuardarCPU = document.getElementById("btnGuardarCPU");
+
+  // GPU modal
+  const btnNuevaGPU = document.getElementById("btnNuevaGPU");
+  const modalGPUEl = document.getElementById("modalNuevaGPU");
+  const btnGuardarGPU = document.getElementById("btnGuardarGPU");
+
+  let modalCPU = null;
+  let modalGPU = null;
+
+  if (modalCPUEl && window.bootstrap && window.bootstrap.Modal) {
+    modalCPU = new window.bootstrap.Modal(modalCPUEl);
+  }
+  if (modalGPUEl && window.bootstrap && window.bootstrap.Modal) {
+    modalGPU = new window.bootstrap.Modal(modalGPUEl);
+  }
+
+  if (btnNuevaCPU && modalCPU) {
+    btnNuevaCPU.addEventListener("click", () => {
+      // limpiar formulario
+      const f = document.getElementById("formNuevaCPU");
+      if (f) f.reset();
+      modalCPU.show();
+    });
+  }
+
+  if (btnNuevaGPU && modalGPU) {
+    btnNuevaGPU.addEventListener("click", () => {
+      const f = document.getElementById("formNuevaGPU");
+      if (f) f.reset();
+      modalGPU.show();
+    });
+  }
+
+  if (btnGuardarCPU) {
+    btnGuardarCPU.addEventListener("click", async () => {
+      try {
+        // leer inputs del modal
+        const cpuNombre = document.getElementById("cpuNombre")?.value?.trim();
+        const cpuGeneracion = document.getElementById("cpuGeneracion")?.value?.trim();
+        const cpuVelocidad = document.getElementById("cpuVelocidad")?.value?.trim();
+
+        if (!cpuNombre) {
+          alert("Ingresa al menos la marca/nombre de la CPU.");
+          return;
+        }
+
+        // mapear a {marca, modelo} según tu modelo backend
+        const payload = {
+          marca: cpuNombre,
+          modelo: `${cpuGeneracion || ""} ${cpuVelocidad ? cpuVelocidad + "GHz" : ""}`.trim()
+        };
+
+        const nuevo = await API.post("cpu/", payload);
+
+        // cerrar modal y refrescar select
+        modalCPU.hide();
+        await cargarSelectCPU();
+
+        // seleccionar la nueva opción si viene el id
+        if (nuevo && nuevo.id) {
+          const selectCPU = document.getElementById("cpu");
+          if (selectCPU) selectCPU.value = nuevo.id;
+        }
+
+        alert("CPU creada correctamente.");
+      } catch (err) {
+        console.error("Error al crear CPU:", err);
+        alert("No se pudo crear la CPU.");
+      }
+    });
+  }
+
+  if (btnGuardarGPU) {
+    btnGuardarGPU.addEventListener("click", async () => {
+      try {
+        const gpuNombre = document.getElementById("gpuNombre")?.value?.trim();
+        const gpuMemoria = document.getElementById("gpuMemoria")?.value?.trim();
+        const gpuTipo = document.getElementById("gpuTipo")?.value?.trim();
+
+        if (!gpuNombre) {
+          alert("Ingresa al menos la marca/nombre de la GPU.");
+          return;
+        }
+
+        const payload = {
+          marca: gpuNombre,
+          modelo: `${gpuTipo || ""} ${gpuMemoria ? gpuMemoria + "GB" : ""}`.trim()
+        };
+
+        const nuevo = await API.post("gpu/", payload);
+
+        modalGPU.hide();
+        await cargarSelectGPU();
+
+        if (nuevo && nuevo.id) {
+          const selectGPU = document.getElementById("gpu");
+          if (selectGPU) selectGPU.value = nuevo.id;
+        }
+
+        alert("GPU creada correctamente.");
+      } catch (err) {
+        console.error("Error al crear GPU:", err);
+        alert("No se pudo crear la GPU.");
+      }
+    });
+  }
+}
+
+// -----------------------------------------------------------
+// Helpers reutilizables
+// -----------------------------------------------------------
+
+// (Ya definido antes: getId)
+
+// -----------------------------------------------------------
+// FIN
+// -----------------------------------------------------------
+
+export {
+  // exporto si quieres reutilizar funciones en otros módulos
+};
