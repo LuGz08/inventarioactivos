@@ -1,14 +1,18 @@
 // src/js/api.js
 // Helper global para consumir la API Django protegida con JWT
 
-// Ajusta si tu backend corre en otra URL o puerto
-const API_BASE_URL = "http://127.0.0.1:8000";
+// ============================================================
+// CONFIGURACIÓN DE PRODUCCIÓN (AWS EC2)
+// ============================================================
+// Apunta directamente a tu IP Pública de AWS en el puerto de Django
+const API_BASE_URL = "http://44.219.224.45:8000";
 
 // Prefijo de las vistas del router:
 // Proyecto: path('api/', include('app_inventario.urls'))
 // App:      path('api/', include(router.urls))
 // → /api/api/<recurso>/
 const API_PREFIX = "/api/api";
+
 function buildApiUrl(resource) {
   const clean = String(resource || "").replace(/^\/+/, "");
   return `${API_PREFIX}/${clean}`;
@@ -17,7 +21,6 @@ function buildApiUrl(resource) {
 // -------------------- Helpers de tokens -------------------- //
 
 function getAccessToken() {
-  // AHORA usa las mismas keys que login.js
   return localStorage.getItem("access");
 }
 
@@ -40,7 +43,7 @@ function clearTokens() {
 
 function forceLogout() {
   clearTokens();
-  // Ruta real de tu login
+  // Redirige al login. Asegúrate que esta ruta exista en tu servidor.
   window.location.href = "/paginas/login/login.html";
 }
 
@@ -51,6 +54,7 @@ async function tryRefreshToken() {
   if (!refresh) return false;
 
   try {
+    // Nota: Usamos API_BASE_URL para que funcione remoto
     const res = await fetch(`${API_BASE_URL}/api/auth/token/refresh/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -70,6 +74,7 @@ async function tryRefreshToken() {
     return false;
   }
 }
+
 // -------------------- Fetch con JWT -------------------- //
 
 async function fetchWithAuth(urlPath, options = {}, { skipAuth = false } = {}) {
@@ -89,7 +94,7 @@ async function fetchWithAuth(urlPath, options = {}, { skipAuth = false } = {}) {
     options.body = JSON.stringify(options.body);
   }
 
-  // ✅ SI urlPath YA ES ABSOLUTA, NO le pegues API_BASE_URL
+  // Construir URL final: si ya es absoluta (ej: http://...), úsala tal cual; si no, agrega el BASE_URL
   const finalUrl =
     typeof urlPath === "string" && /^https?:\/\//i.test(urlPath)
       ? urlPath
@@ -100,11 +105,16 @@ async function fetchWithAuth(urlPath, options = {}, { skipAuth = false } = {}) {
     headers,
   });
 
+  // Manejo de expiración de token (401)
   if (response.status === 401 && !skipAuth) {
     const refreshed = await tryRefreshToken();
-    if (refreshed) return fetchWithAuth(urlPath, options, { skipAuth });
-    forceLogout();
-    throw new Error("Sesión expirada. Vuelve a iniciar sesión.");
+    if (refreshed) {
+      // Reintentar la petición original con el nuevo token
+      return fetchWithAuth(urlPath, options, { skipAuth });
+    } else {
+      forceLogout();
+      throw new Error("Sesión expirada. Vuelve a iniciar sesión.");
+    }
   }
 
   if (response.status === 204) return null;
@@ -126,23 +136,19 @@ async function fetchWithAuth(urlPath, options = {}, { skipAuth = false } = {}) {
 
     const text = await response.text().catch(() => "");
     throw new Error(
-      `Error HTTP ${response.status} (respuesta no JSON). ` +
-        `URL final: ${response.url}. ` +
-        `Respuesta: ${(text || "").slice(0, 500)}`
+      `Error HTTP ${response.status}. URL: ${response.url}. Respuesta: ${(text || "").slice(0, 100)}`
     );
   }
 
   if (!isJson) {
     const text = await response.text().catch(() => "");
     throw new Error(
-      `Respuesta inesperada (no JSON). URL final: ${response.url}. ` +
-        `Respuesta: ${(text || "").slice(0, 500)}`
+      `Respuesta inesperada (no JSON). URL: ${response.url}. Respuesta: ${(text || "").slice(0, 100)}`
     );
   }
 
   return response.json();
 }
-
 
 // -------------------- Métodos genéricos -------------------- //
 
@@ -182,9 +188,9 @@ async function apiDelete(resource, options = {}) {
 }
 
 // -------------------- Login (sin JWT previo) -------------------- //
-// (Opcional, por si en algún lado quisieras loguear con esta API en vez de login.js)
 
 async function login(username, password) {
+  // Nota: Login también debe apuntar a la IP del servidor
   const res = await fetch(`${API_BASE_URL}/api/auth/token/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -202,11 +208,9 @@ async function login(username, password) {
 
   const data = await res.json();
 
-  // Guardamos tokens si vienen
   if (data.access || data.refresh) {
     setTokens({ access: data.access, refresh: data.refresh });
   }
-  // Guarda info de usuario si la mandas en el backend
   if (data.user) {
     localStorage.setItem("userLogin", JSON.stringify(data.user));
   }
@@ -228,14 +232,13 @@ export const API = {
   patch: apiPatch,
   delete: apiDelete,
 
-  // Conveniencia: productos
+  // Conveniencia
   getProductos: () => apiGet("productos/"),
   getProducto: (id) => apiGet(`productos/${id}/`),
   crearProducto: (payload) => apiPost("productos/", payload),
   actualizarProducto: (id, payload) => apiPut(`productos/${id}/`, payload),
   eliminarProducto: (id) => apiDelete(`productos/${id}/`),
 
-  // Conveniencia: catálogos
   getSucursales: () => apiGet("sucursales/"),
   getCategorias: () => apiGet("categorias/"),
   getEstados: () => apiGet("estados/"),
@@ -243,7 +246,7 @@ export const API = {
   getProveedores: () => apiGet("proveedores/"),
 };
 
-// (Opcional) Exponer también en window para otros scripts no-módulo
+// Exponer en window por si acaso
 if (typeof window !== "undefined") {
   window.API = API;
 }
