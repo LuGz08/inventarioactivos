@@ -5,300 +5,241 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel de Usuario - Inventario Coyahue</title>
 
-  <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-
-  <!-- Estilos -->
   <link rel="stylesheet" href="/src/css/styles.css">
 
   <style>
-    .user-panel-card {
-      transition: transform 0.2s, box-shadow 0.2s;
-      cursor: pointer;
-      border: none;
-      border-radius: 12px;
+    /* Estilos específicos para tarjetas de acceso rápido */
+    .shortcut-card {
+      transition: all 0.3s ease;
+      border: 1px solid rgba(0,0,0,0.05);
+      background: var(--bg-card);
+      color: var(--text-main);
     }
-
-    .user-panel-card:hover {
+    .shortcut-card:hover {
       transform: translateY(-5px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+      border-color: var(--color-secundario);
     }
-
-    .user-panel-icon {
-      width: 70px;
-      height: 70px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2rem;
-      margin: 0 auto 15px;
+    .shortcut-icon {
+      width: 60px; height: 60px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
     }
-
-    .stat-mini {
-      padding: 12px;
-      border-radius: 8px;
-      background: #f8f9fa;
+    
+    /* KPI Cards Estilo Admin */
+    .kpi-card {
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+      display: flex; align-items: center; gap: 15px;
+    }
+    .kpi-icon-wrapper {
+      width: 48px; height: 48px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
     }
   </style>
 </head>
 
 <body>
 
-  <!-- TOPBAR -->
   <nav class="topbar" id="app-topbar"></nav>
 
   <div class="app-container">
-
-    <!-- SIDEBAR -->
     <aside class="sidebar" id="app-sidebar-user"></aside>
 
-    <!-- CONTENIDO -->
     <main class="main-content">
       <div class="container-fluid">
 
         <div class="mb-4">
           <h2 class="fw-bold text-primary mb-1">
-            <i class="bi bi-person-circle me-2"></i>Panel de Usuario
+            <i class="bi bi-grid-fill me-2"></i>Panel General
           </h2>
           <p class="text-muted mb-0">
-            Bienvenido <strong id="userName">Usuario</strong>. Aquí puedes consultar la información del inventario.
+            Bienvenido, <strong id="userName">Usuario</strong>. Resumen de inventario.
           </p>
         </div>
 
-        <!-- Resumen rápido -->
-        <div class="row g-3 mb-4">
+        <div class="row g-3 mb-5">
           <div class="col-md-3">
-            <div class="stat-mini">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <p class="text-muted mb-0 small">Total Productos</p>
-                  <h4 class="mb-0" id="totalProductos">0</h4>
-                </div>
-                <i class="bi bi-box-seam fs-2 text-primary"></i>
+            <div class="kpi-card">
+              <div class="kpi-icon-wrapper bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-box-seam"></i>
+              </div>
+              <div>
+                <h3 class="fw-bold mb-0" id="totalProductos">0</h3>
+                <small class="text-muted">Total Productos</small>
               </div>
             </div>
           </div>
 
           <div class="col-md-3">
-            <div class="stat-mini">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <p class="text-muted mb-0 small">Categorías</p>
-                  <h4 class="mb-0" id="totalCategorias">0</h4>
-                </div>
-                <i class="bi bi-tags fs-2 text-success"></i>
+            <div class="kpi-card">
+              <div class="kpi-icon-wrapper bg-success bg-opacity-10 text-success">
+                <i class="bi bi-tags"></i>
+              </div>
+              <div>
+                <h3 class="fw-bold mb-0" id="totalCategorias">0</h3>
+                <small class="text-muted">Categorías</small>
               </div>
             </div>
           </div>
 
           <div class="col-md-3">
-            <div class="stat-mini">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <p class="text-muted mb-0 small">Proveedores</p>
-                  <h4 class="mb-0" id="totalProveedores">0</h4>
-                </div>
-                <i class="bi bi-truck fs-2 text-warning"></i>
+            <div class="kpi-card">
+              <div class="kpi-icon-wrapper bg-warning bg-opacity-10 text-warning">
+                <i class="bi bi-truck"></i>
+              </div>
+              <div>
+                <h3 class="fw-bold mb-0" id="totalProveedores">0</h3>
+                <small class="text-muted">Proveedores</small>
               </div>
             </div>
           </div>
 
           <div class="col-md-3">
-            <div class="stat-mini">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <p class="text-muted mb-0 small">Sucursales</p>
-                  <h4 class="mb-0" id="totalSucursales">0</h4>
-                </div>
-                <i class="bi bi-geo-alt fs-2 text-info"></i>
+            <div class="kpi-card">
+              <div class="kpi-icon-wrapper bg-info bg-opacity-10 text-info">
+                <i class="bi bi-geo-alt"></i>
+              </div>
+              <div>
+                <h3 class="fw-bold mb-0" id="totalSucursales">0</h3>
+                <small class="text-muted">Sucursales</small>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Accesos rápidos -->
-        <h5 class="fw-semibold mb-3">Accesos rápidos</h5>
+        <h5 class="fw-bold mb-3 text-secondary">Accesos Directos</h5>
         <div class="row g-4">
 
-          <div class="col-md-4" onclick="window.location.href='productos-usuario.html'">
-            <div class="card user-panel-card p-4 text-center">
-              <div class="user-panel-icon bg-primary bg-opacity-10 text-primary">
+          <div class="col-md-4 col-lg-3" onclick="window.location.href='productos-usuario.html'" style="cursor: pointer;">
+            <div class="card shortcut-card h-100 p-4 text-center">
+              <div class="shortcut-icon bg-primary text-white mx-auto">
                 <i class="bi bi-box-seam"></i>
               </div>
-              <h5 class="fw-semibold mb-2">Productos</h5>
-              <p class="text-muted small mb-0">
-                Consulta el inventario completo de equipos y activos
-              </p>
+              <h6 class="fw-bold">Productos</h6>
+              <p class="small text-muted mb-0">Listado general</p>
             </div>
           </div>
 
-          <div class="col-md-4" onclick="window.location.href='categorias-usuario.html'">
-            <div class="card user-panel-card p-4 text-center">
-              <div class="user-panel-icon bg-success bg-opacity-10 text-success">
-                <i class="bi bi-tags"></i>
-              </div>
-              <h5 class="fw-semibold mb-2">Categorías</h5>
-              <p class="text-muted small mb-0">
-                Explora las categorías de productos disponibles
-              </p>
-            </div>
-          </div>
-
-          <div class="col-md-4" onclick="window.location.href='proveedores-usuario.html'">
-            <div class="card user-panel-card p-4 text-center">
-              <div class="user-panel-icon bg-warning bg-opacity-10 text-warning">
-                <i class="bi bi-truck"></i>
-              </div>
-              <h5 class="fw-semibold mb-2">Proveedores</h5>
-              <p class="text-muted small mb-0">
-                Información de proveedores registrados
-              </p>
-            </div>
-          </div>
-
-          <div class="col-md-4" onclick="window.location.href='sucursales-usuario.html'">
-            <div class="card user-panel-card p-4 text-center">
-              <div class="user-panel-icon bg-info bg-opacity-10 text-info">
-                <i class="bi bi-geo-alt"></i>
-              </div>
-              <h5 class="fw-semibold mb-2">Sucursales</h5>
-              <p class="text-muted small mb-0">
-                Listado de sucursales del grupo
-              </p>
-            </div>
-          </div>
-
-          <div class="col-md-4" onclick="window.location.href='reportes-usuario.html'">
-            <div class="card user-panel-card p-4 text-center">
-              <div class="user-panel-icon bg-secondary bg-opacity-10 text-secondary">
+          <div class="col-md-4 col-lg-3" onclick="window.location.href='reportes-usuario.html'" style="cursor: pointer;">
+            <div class="card shortcut-card h-100 p-4 text-center">
+              <div class="shortcut-icon bg-purple text-white mx-auto" style="background-color: #6f42c1;">
                 <i class="bi bi-graph-up"></i>
               </div>
-              <h5 class="fw-semibold mb-2">Reportes</h5>
-              <p class="text-muted small mb-0">
-                Visualiza estadísticas e informes
-              </p>
+              <h6 class="fw-bold">Reportes</h6>
+              <p class="small text-muted mb-0">Estadísticas</p>
             </div>
           </div>
 
-          <div class="col-md-4" onclick="window.location.href='/paginas/ajustes/ajustes.html'">
-            <div class="card user-panel-card p-4 text-center">
-              <div class="user-panel-icon bg-dark bg-opacity-10 text-dark">
+          <div class="col-md-4 col-lg-3" onclick="window.location.href='sucursales-usuario.html'" style="cursor: pointer;">
+            <div class="card shortcut-card h-100 p-4 text-center">
+              <div class="shortcut-icon bg-info text-white mx-auto">
+                <i class="bi bi-shop"></i>
+              </div>
+              <h6 class="fw-bold">Sucursales</h6>
+              <p class="small text-muted mb-0">Ubicaciones</p>
+            </div>
+          </div>
+
+          <div class="col-md-4 col-lg-3" onclick="window.location.href='/paginas/usuario/ajustes-usuario.html'" style="cursor: pointer;">
+            <div class="card shortcut-card h-100 p-4 text-center">
+              <div class="shortcut-icon bg-secondary text-white mx-auto">
                 <i class="bi bi-gear"></i>
               </div>
-              <h5 class="fw-semibold mb-2">Mi Perfil</h5>
-              <p class="text-muted small mb-0">
-                Configuración de tu cuenta
-              </p>
+              <h6 class="fw-bold">Mi Cuenta</h6>
+              <p class="small text-muted mb-0">Configuración</p>
             </div>
           </div>
 
         </div>
 
         <footer class="text-center mt-5 small text-muted">
-          © 2025 Grupo Coyahue — Sistema de Inventario
+          © 2025 Grupo Coyahue — Portal de Usuario
         </footer>
 
       </div>
     </main>
-
   </div>
 
-  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script type="module">
     import { API } from "/src/js/api.js";
 
-    // Sidebar especial para usuarios
+    // ========== SIDEBAR ESTILO ADMIN ==========
     function cargarSidebarUsuario() {
       const sidebar = document.getElementById("app-sidebar-user");
       if (!sidebar) return;
 
       sidebar.innerHTML = `
-        <img src="/src/img/logo-coyahue.png" alt="Logo Coyahue" class="logo" />
-        <nav>
-          <a class="nav-link active" href="panel.html">
-            <i class="bi bi-house-door"></i> Inicio
-          </a>
-          <a class="nav-link" href="productos-usuario.html">
-            <i class="bi bi-box-seam"></i> Productos
-          </a>
-          <a class="nav-link" href="categorias-usuario.html">
-            <i class="bi bi-tags"></i> Categorías
-          </a>
-          <a class="nav-link" href="proveedores-usuario.html">
-            <i class="bi bi-truck"></i> Proveedores
-          </a>
-          <a class="nav-link" href="sucursales-usuario.html">
-            <i class="bi bi-geo-alt"></i> Sucursales
-          </a>
-          <a class="nav-link" href="reportes-usuario.html">
-            <i class="bi bi-graph-up"></i> Reportes
-          </a>
-          <a class="nav-link" href="/paginas/usuario/ajustes-usuario.html">
-            <i class="bi bi-gear"></i> Ajustes
-          </a>
+        <div class="logo-container">
+          <img src="/src/img/logo-coyahue.png" alt="Logo" class="logo" />
+        </div>
+        <nav class="nav flex-column">
+          <small>Principal</small>
+          <a class="nav-link active" href="panel.html"><i class="bi bi-grid-fill"></i> Panel General</a>
+          
+          <small>Consultas</small>
+          <a class="nav-link" href="productos-usuario.html"><i class="bi bi-box-seam"></i> Productos</a>
+          <a class="nav-link" href="categorias-usuario.html"><i class="bi bi-tags"></i> Categorías</a>
+          <a class="nav-link" href="sucursales-usuario.html"><i class="bi bi-geo-alt"></i> Sucursales</a>
+          <a class="nav-link" href="proveedores-usuario.html"><i class="bi bi-truck"></i> Proveedores</a>
+          
+          <small>Herramientas</small>
+          <a class="nav-link" href="reportes-usuario.html"><i class="bi bi-file-earmark-bar-graph"></i> Reportes</a>
+          <a class="nav-link" href="/paginas/usuario/ajustes-usuario.html"><i class="bi bi-gear"></i> Mi Cuenta</a>
         </nav>
       `;
     }
 
-    // Cargar topbar usando la función de main.js
+    // ========== TOPBAR ESTILO ADMIN ==========
     function cargarTopbarUsuario() {
       const topbar = document.getElementById("app-topbar");
       if (!topbar) return;
 
       const usuarioLog = localStorage.getItem("username") || "Usuario";
+      const inicial = usuarioLog.charAt(0).toUpperCase();
 
       topbar.innerHTML = `
-        <div class="d-flex align-items-center gap-2">
-          <button class="btn btn-link text-white d-lg-none p-0 me-2 menu-toggle" type="button">
-            <i class="bi bi-list fs-3"></i>
+        <div class="d-flex align-items-center">
+          <button class="menu-toggle me-3" onclick="document.querySelector('.sidebar').classList.toggle('open')">
+            <i class="bi bi-list"></i>
           </button>
+          <span class="fw-bold text-white d-lg-none">Coyahue</span>
         </div>
 
-        <div class="flex-grow-1"></div>
-
-        <div class="d-flex align-items-center gap-3">
-          <span id="btn-dark-toggle" class="toggle-dark" role="button">
+        <div class="topbar-right">
+          <span id="btn-dark-toggle" class="toggle-dark" role="button" title="Cambiar tema">
             <i class="bi bi-moon-stars-fill" id="dark-icon"></i>
           </span>
 
           <div class="dropdown">
-            <button class="btn btn-sm btn-outline-light dropdown-toggle user-area"
-                    type="button" data-bs-toggle="dropdown">
-              ${usuarioLog}
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="/paginas/ajustes/ajustes.html">Ajustes</a></li>
+            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle user-area" data-bs-toggle="dropdown">
+              <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width:32px; height:32px; font-weight:bold;">
+                ${inicial}
+              </div>
+              <span class="d-none d-md-block">${usuarioLog}</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+              <li><h6 class="dropdown-header">Hola, ${usuarioLog}</h6></li>
+              <li><a class="dropdown-item" href="/paginas/usuario/ajustes-usuario.html">Mi Perfil</a></li>
               <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" onclick="cerrarSesion()">Cerrar sesión</a></li>
+              <li><a class="dropdown-item text-danger" onclick="window.cerrarSesion()">Cerrar sesión</a></li>
             </ul>
           </div>
         </div>
       `;
     }
 
-    // Verificar que sea usuario no-staff
-    function verificarAccesoUsuario() {
-      const access = localStorage.getItem("access");
-      const isStaff = localStorage.getItem("is_staff");
-
-      if (!access) {
-        window.location.href = "/paginas/login/login.html";
-        return false;
-      }
-
-      // Si es staff, redirigir al dashboard admin
-      if (isStaff === "1") {
-        window.location.href = "/index.html";
-        return false;
-      }
-
-      return true;
-    }
-
-    // Cargar estadísticas
+    // ========== LOGICA DASHBOARD ==========
     async function cargarEstadisticas() {
       try {
         const [productos, categorias, proveedores, sucursales] = await Promise.all([
@@ -308,44 +249,34 @@
           API.get("sucursales/").catch(() => ({ results: [] })),
         ]);
 
-        const normalizarLista = (res) => {
-          if (Array.isArray(res)) return res;
-          if (res && Array.isArray(res.results)) return res.results;
-          return [];
-        };
+        const normalizar = (res) => (Array.isArray(res) ? res : res.results || []);
 
-        document.getElementById("totalProductos").textContent = normalizarLista(productos).length;
-        document.getElementById("totalCategorias").textContent = normalizarLista(categorias).length;
-        document.getElementById("totalProveedores").textContent = normalizarLista(proveedores).length;
-        document.getElementById("totalSucursales").textContent = normalizarLista(sucursales).length;
+        document.getElementById("totalProductos").textContent = normalizar(productos).length;
+        document.getElementById("totalCategorias").textContent = normalizar(categorias).length;
+        document.getElementById("totalProveedores").textContent = normalizar(proveedores).length;
+        document.getElementById("totalSucursales").textContent = normalizar(sucursales).length;
 
-        // Nombre del usuario
-        const username = localStorage.getItem("username") || "Usuario";
-        document.getElementById("userName").textContent = username;
+        document.getElementById("userName").textContent = localStorage.getItem("username") || "Usuario";
 
       } catch (err) {
         console.error("Error cargando estadísticas:", err);
       }
     }
 
-    // Cerrar sesión
+    // Funciones globales
     window.cerrarSesion = function() {
-      localStorage.removeItem("access");
-      localStorage.removeItem("refresh");
-      localStorage.removeItem("username");
-      localStorage.removeItem("is_staff");
+      localStorage.clear();
       window.location.href = "/paginas/login/login.html";
     };
 
-    // Configurar tema oscuro
     function configurarTema() {
       const body = document.body;
       const toggle = document.getElementById("btn-dark-toggle");
       const icon = document.getElementById("dark-icon");
       if (!toggle || !icon) return;
 
-      const temaGuardado = localStorage.getItem("theme") || "light";
-      if (temaGuardado === "dark") {
+      const tema = localStorage.getItem("theme") || "light";
+      if (tema === "dark") {
         body.classList.add("dark-mode");
         icon.classList.replace("bi-moon-stars-fill", "bi-brightness-high-fill");
       }
@@ -358,9 +289,12 @@
       });
     }
 
-    // Inicializar
     document.addEventListener("DOMContentLoaded", () => {
-      if (!verificarAccesoUsuario()) return;
+      // Validar acceso (si es staff redirigir a admin)
+      if (localStorage.getItem("is_staff") === "1") {
+         window.location.href = "/index.html";
+         return;
+      }
       
       cargarTopbarUsuario();
       cargarSidebarUsuario();
@@ -368,6 +302,5 @@
       cargarEstadisticas();
     });
   </script>
-
 </body>
 </html>

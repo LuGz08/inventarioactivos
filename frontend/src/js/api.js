@@ -9,6 +9,10 @@ const API_BASE_URL = "http://127.0.0.1:8000";
 // App:      path('api/', include(router.urls))
 // → /api/api/<recurso>/
 const API_PREFIX = "/api/api";
+function buildApiUrl(resource) {
+  const clean = String(resource || "").replace(/^\/+/, "");
+  return `${API_PREFIX}/${clean}`;
+}
 
 // -------------------- Helpers de tokens -------------------- //
 
@@ -66,10 +70,9 @@ async function tryRefreshToken() {
     return false;
   }
 }
-
 // -------------------- Fetch con JWT -------------------- //
 
-async function fetchWithAuth(url, options = {}, { skipAuth = false } = {}) {
+async function fetchWithAuth(urlPath, options = {}, { skipAuth = false } = {}) {
   const headers = options.headers ? { ...options.headers } : {};
 
   if (!skipAuth) {
@@ -81,53 +84,65 @@ async function fetchWithAuth(url, options = {}, { skipAuth = false } = {}) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  // Si el body es un objeto plano, lo enviamos como JSON
   if (options.body && !(options.body instanceof FormData)) {
     headers["Content-Type"] = headers["Content-Type"] || "application/json";
     options.body = JSON.stringify(options.body);
   }
 
-  const response = await fetch(`${API_BASE_URL}${url}`, {
+  // ✅ SI urlPath YA ES ABSOLUTA, NO le pegues API_BASE_URL
+  const finalUrl =
+    typeof urlPath === "string" && /^https?:\/\//i.test(urlPath)
+      ? urlPath
+      : `${API_BASE_URL}${urlPath}`;
+
+  const response = await fetch(finalUrl, {
     ...options,
     headers,
   });
 
-  // Si recibimos 401, intentamos refrescar el token una vez
   if (response.status === 401 && !skipAuth) {
     const refreshed = await tryRefreshToken();
-    if (refreshed) {
-      return fetchWithAuth(url, options, { skipAuth });
-    } else {
-      forceLogout();
-      throw new Error("Sesión expirada. Vuelve a iniciar sesión.");
-    }
+    if (refreshed) return fetchWithAuth(urlPath, options, { skipAuth });
+    forceLogout();
+    throw new Error("Sesión expirada. Vuelve a iniciar sesión.");
   }
+
+  if (response.status === 204) return null;
+
+  const contentType = (response.headers.get("content-type") || "").toLowerCase();
+  const isJson =
+    contentType.includes("application/json") ||
+    contentType.includes("application/problem+json");
 
   if (!response.ok) {
-    let detail = `Error HTTP ${response.status}`;
-    try {
-      const errorData = await response.json();
-      detail = errorData.detail || JSON.stringify(errorData);
-    } catch (_) {
-      // ignorar errores al parsear
+    if (isJson) {
+      const errorData = await response.json().catch(() => null);
+      const detail =
+        errorData?.detail ||
+        errorData?.message ||
+        (errorData ? JSON.stringify(errorData) : null);
+      throw new Error(detail || `Error HTTP ${response.status}`);
     }
-    throw new Error(detail);
+
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      `Error HTTP ${response.status} (respuesta no JSON). ` +
+        `URL final: ${response.url}. ` +
+        `Respuesta: ${(text || "").slice(0, 500)}`
+    );
   }
 
-  // 204 No Content
-  if (response.status === 204) return null;
+  if (!isJson) {
+    const text = await response.text().catch(() => "");
+    throw new Error(
+      `Respuesta inesperada (no JSON). URL final: ${response.url}. ` +
+        `Respuesta: ${(text || "").slice(0, 500)}`
+    );
+  }
 
   return response.json();
 }
 
-// Construye la URL interna de la API a partir de un fragmento
-function buildApiUrl(resource) {
-  // Normalizamos para evitar dobles "/"
-  if (resource.startsWith("/")) {
-    resource = resource.slice(1);
-  }
-  return `${API_PREFIX}/${resource}`;
-}
 
 // -------------------- Métodos genéricos -------------------- //
 

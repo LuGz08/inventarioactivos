@@ -3,616 +3,80 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ajustes - Panel Usuario</title>
-
+  <title>Mi Cuenta - Panel Usuario</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="/src/css/styles.css">
-
-  <style>
-    .settings-avatar {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      background: #0d6efd;
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2.2rem;
-      font-weight: 600;
-    }
-
-    .password-strength {
-      height: 6px;
-      border-radius: 999px;
-      background-color: #e9ecef;
-      margin-bottom: 4px;
-      overflow: hidden;
-    }
-
-    .password-strength::after {
-      content: "";
-      display: block;
-      height: 100%;
-      width: 0%;
-      transition: width 0.2s linear;
-    }
-
-    .password-strength.strength-weak::after {
-      width: 33%;
-      background-color: #dc3545;
-    }
-
-    .password-strength.strength-medium::after {
-      width: 66%;
-      background-color: #ffc107;
-    }
-
-    .password-strength.strength-strong::after {
-      width: 100%;
-      background-color: #28a745;
-    }
-  </style>
 </head>
-
 <body>
 
   <nav class="topbar" id="app-topbar"></nav>
-
   <div class="app-container">
     <aside class="sidebar" id="app-sidebar-user"></aside>
-
     <main class="main-content">
       <div class="container-fluid">
-
-        <div class="d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <h2 class="fw-bold text-primary mb-0">
-              <i class="bi bi-gear me-2"></i>Ajustes de Cuenta
-            </h2>
-            <p class="text-muted mb-0">Administra tus datos personales y seguridad</p>
-          </div>
-          <a href="panel.html" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left"></i> Volver al panel
-          </a>
-        </div>
-
-        <div class="row g-4">
-          <!-- Columna izquierda: Perfil / Seguridad -->
-          <div class="col-lg-8">
-            <div class="card shadow-sm border-0">
-              <div class="card-header bg-white border-0 pb-0">
-                <ul class="nav nav-tabs card-header-tabs" role="tablist">
-                  <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="perfil-tab" data-bs-toggle="tab"
-                            data-bs-target="#perfilTabPane" type="button" role="tab">
-                      <i class="bi bi-person-badge me-1"></i> Mi Perfil
-                    </button>
-                  </li>
-                  <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="seguridad-tab" data-bs-toggle="tab"
-                            data-bs-target="#seguridadTabPane" type="button" role="tab">
-                      <i class="bi bi-shield-lock me-1"></i> Seguridad
-                    </button>
-                  </li>
-                </ul>
+        
+        <div class="row justify-content-center">
+          <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0 p-4">
+              <div class="text-center mb-4">
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width:80px; height:80px; font-size:2rem; font-weight:bold;">
+                  <span id="userInitial">U</span>
+                </div>
+                <h4 class="fw-bold mb-0" id="profileName">Cargando...</h4>
+                <p class="text-muted">Perfil de Usuario</p>
               </div>
 
-              <div class="card-body">
-                <div class="tab-content">
-                  
-                  <!-- TAB PERFIL -->
-                  <div class="tab-pane fade show active" id="perfilTabPane" role="tabpanel">
-                    <form id="perfilForm" class="mt-3">
-                      <div class="d-flex align-items-center mb-4">
-                        <div class="settings-avatar me-3" id="avatarCircle">
-                          <span id="avatarInitial">U</span>
-                        </div>
-                        <div>
-                          <h5 class="mb-1" id="nombreUsuarioDisplay">Usuario</h5>
-                          <p class="text-muted small mb-0">
-                            <i class="bi bi-person-badge me-1"></i>
-                            <span id="usernameDisplay">username</span>
-                          </p>
-                        </div>
-                      </div>
-
-                      <div class="alert alert-info" role="alert">
-                        <i class="bi bi-info-circle me-2"></i>
-                        <strong>Nota:</strong> Para cambiar tus datos debes contactar a un administrador.
-                      </div>
-
-                      <div class="row g-3">
-                        <div class="col-md-6">
-                          <label class="form-label">Nombre *</label>
-                          <input type="text" id="firstName" class="form-control" disabled>
-                        </div>
-                        <div class="col-md-6">
-                          <label class="form-label">Apellido *</label>
-                          <input type="text" id="lastName" class="form-control" disabled>
-                        </div>
-                        
-                        <div class="col-12">
-                          <label class="form-label">Correo electrónico *</label>
-                          <input type="email" id="emailUsuario" class="form-control" disabled>
-                        </div>
-
-                        <div class="col-md-6">
-                          <label class="form-label">Usuario (no editable)</label>
-                          <input type="text" id="username" class="form-control" disabled>
-                        </div>
-
-                        <div class="col-md-6">
-                          <label class="form-label">Rol (no editable)</label>
-                          <input type="text" id="rol" class="form-control" disabled>
-                        </div>
-                      </div>
-
-                      <div class="mt-4 d-flex justify-content-end gap-2">
-                        <button type="submit" class="btn btn-primary">
-                          <i class="bi bi-check-circle me-2"></i> Guardar cambios
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-
-                  <!-- TAB SEGURIDAD -->
-                  <div class="tab-pane fade" id="seguridadTabPane" role="tabpanel">
-                    <form id="passwordForm" class="mt-3">
-                      <div class="alert alert-warning" role="alert">
-                        <i class="bi bi-shield-exclamation me-2"></i>
-                        <strong>Importante:</strong> Asegúrate de recordar tu nueva contraseña. No podrás recuperarla sin ayuda del administrador.
-                      </div>
-
-                      <div class="mb-3">
-                        <label class="form-label">Contraseña actual *</label>
-                        <input type="password" id="passActual" class="form-control" placeholder="Contraseña actual" required>
-                      </div>
-
-                      <div class="mb-3">
-                        <label class="form-label">Nueva contraseña *</label>
-                        <input type="password" id="passNueva" class="form-control" placeholder="Nueva contraseña" required>
-                        <div class="password-strength mt-2" id="strengthBar"></div>
-                        <small class="text-muted" id="msgPass">
-                          Debe tener mínimo 8 caracteres, una mayúscula y un número
-                        </small>
-                      </div>
-
-                      <div class="mb-3">
-                        <label class="form-label">Confirmar nueva contraseña *</label>
-                        <input type="password" id="passConfirm" class="form-control" placeholder="Repite la nueva contraseña" required>
-                      </div>
-
-                      <div class="mt-3 d-flex justify-content-end gap-2">
-                        <button type="submit" class="btn btn-primary">
-                          <i class="bi bi-shield-lock me-2"></i> Cambiar contraseña
-                        </button>
-                      </div>
-                    </form>
-                  </div>
+              <form id="formPassword">
+                <h6 class="border-bottom pb-2 mb-3 fw-bold">Seguridad</h6>
+                <div class="mb-3">
+                  <label class="form-label">Contraseña Actual</label>
+                  <input type="password" id="oldPass" class="form-control" required>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Columna derecha: Info / Ayuda -->
-          <div class="col-lg-4">
-            <div class="card shadow-sm border-0 mb-3">
-              <div class="card-body">
-                <h6 class="fw-semibold mb-3">
-                  <i class="bi bi-info-circle me-1"></i> Información de tu cuenta
-                </h6>
-                <div class="mb-2">
-                  <small class="text-muted">Usuario:</small>
-                  <p class="mb-1" id="sidebarUsername">—</p>
+                <div class="mb-3">
+                  <label class="form-label">Nueva Contraseña</label>
+                  <input type="password" id="newPass" class="form-control" required>
                 </div>
-                <div class="mb-2">
-                  <small class="text-muted">Email:</small>
-                  <p class="mb-1" id="sidebarEmail">—</p>
-                </div>
-                <div class="mb-2">
-                  <small class="text-muted">Rol:</small>
-                  <p class="mb-0" id="sidebarRol">—</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="card shadow-sm border-0">
-              <div class="card-body">
-                <h6 class="fw-semibold mb-2">
-                  <i class="bi bi-shield-check me-1"></i> Consejos de seguridad
-                </h6>
-                <ul class="small text-muted mb-0">
-                  <li>Usa una contraseña única y segura</li>
-                  <li>No compartas tu contraseña con nadie</li>
-                  <li>Cierra sesión en equipos compartidos</li>
-                  <li>Cambia tu contraseña periódicamente</li>
-                </ul>
-              </div>
+                <button type="submit" class="btn btn-primary w-100">Actualizar Contraseña</button>
+              </form>
             </div>
           </div>
         </div>
-
-        <footer class="text-center mt-4 small text-muted">
-          © 2025 Grupo Coyahue — Sistema de Inventario
-        </footer>
 
       </div>
     </main>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script type="module">
-  import { API } from "/src/js/api.js";
+    import { API } from "/src/js/api.js";
 
-  // ========== SIDEBAR USUARIO ==========
-  function cargarSidebarUsuario() {
-    const sidebar = document.getElementById("app-sidebar-user");
-    if (!sidebar) return;
+    document.addEventListener("DOMContentLoaded", async () => {
+      const user = localStorage.getItem("username") || "Usuario";
+      document.getElementById("app-topbar").innerHTML = `<div class="d-flex align-items-center"><button class="menu-toggle me-3" onclick="document.querySelector('.sidebar').classList.toggle('open')"><i class="bi bi-list"></i></button><span class="fw-bold text-white d-lg-none">Coyahue</span></div><div class="topbar-right"><div class="dropdown"><a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle user-area" data-bs-toggle="dropdown"><div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width:32px; height:32px; font-weight:bold;">${user.charAt(0).toUpperCase()}</div><span class="d-none d-md-block">${user}</span></a><ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2"><li><a class="dropdown-item" href="/paginas/usuario/ajustes-usuario.html">Mi Perfil</a></li><li><hr class="dropdown-divider"></li><li><a class="dropdown-item text-danger" onclick="localStorage.clear(); location.href='/paginas/login/login.html'">Cerrar sesión</a></li></ul></div></div>`;
+      document.getElementById("app-sidebar-user").innerHTML = `<div class="logo-container"><img src="/src/img/logo-coyahue.png" alt="Logo" class="logo" /></div><nav class="nav flex-column"><small>Principal</small><a class="nav-link" href="panel.html"><i class="bi bi-grid-fill"></i> Panel General</a><small>Consultas</small><a class="nav-link" href="productos-usuario.html"><i class="bi bi-box-seam"></i> Productos</a><a class="nav-link" href="categorias-usuario.html"><i class="bi bi-tags"></i> Categorías</a><a class="nav-link" href="sucursales-usuario.html"><i class="bi bi-geo-alt"></i> Sucursales</a><a class="nav-link" href="proveedores-usuario.html"><i class="bi bi-truck"></i> Proveedores</a><small>Herramientas</small><a class="nav-link" href="reportes-usuario.html"><i class="bi bi-file-earmark-bar-graph"></i> Reportes</a><a class="nav-link active" href="/paginas/usuario/ajustes-usuario.html"><i class="bi bi-gear"></i> Mi Cuenta</a></nav>`;
 
-    sidebar.innerHTML = `
-      <img src="/src/img/logo-coyahue.png" alt="Logo Coyahue" class="logo" />
-      <nav>
-        <a class="nav-link" href="panel.html">
-          <i class="bi bi-house-door"></i> Inicio
-        </a>
-        <a class="nav-link" href="productos-usuario.html">
-          <i class="bi bi-box-seam"></i> Productos
-        </a>
-        <a class="nav-link" href="categorias-usuario.html">
-          <i class="bi bi-tags"></i> Categorías
-        </a>
-        <a class="nav-link" href="proveedores-usuario.html">
-          <i class="bi bi-truck"></i> Proveedores
-        </a>
-        <a class="nav-link" href="sucursales-usuario.html">
-          <i class="bi bi-geo-alt"></i> Sucursales
-        </a>
-        <a class="nav-link" href="reportes-usuario.html">
-          <i class="bi bi-graph-up"></i> Reportes
-        </a>
-        <a class="nav-link active" href="ajustes-usuario.html">
-          <i class="bi bi-gear"></i> Ajustes
-        </a>
-      </nav>
-    `;
-  }
+      // Cargar info perfil
+      document.getElementById("profileName").textContent = user;
+      document.getElementById("userInitial").textContent = user.charAt(0).toUpperCase();
 
-  // ========== TOPBAR USUARIO ==========
-  function cargarTopbarUsuario() {
-    const topbar = document.getElementById("app-topbar");
-    if (!topbar) return;
+      // Cambio Password
+      document.getElementById("formPassword").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const old_password = document.getElementById("oldPass").value;
+        const new_password = document.getElementById("newPass").value;
 
-    const usuarioLog = localStorage.getItem("username") || "Usuario";
+        if (new_password.length < 8) return alert("La contraseña debe tener al menos 8 caracteres");
 
-    topbar.innerHTML = `
-      <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-link text-white d-lg-none p-0 me-2 menu-toggle" type="button">
-          <i class="bi bi-list fs-3"></i>
-        </button>
-      </div>
-      <div class="flex-grow-1"></div>
-      <div class="d-flex align-items-center gap-3">
-        <span id="btn-dark-toggle" class="toggle-dark" role="button">
-          <i class="bi bi-moon-stars-fill" id="dark-icon"></i>
-        </span>
-        <div class="dropdown">
-          <button class="btn btn-sm btn-outline-light dropdown-toggle user-area"
-                  type="button" data-bs-toggle="dropdown">
-            ${usuarioLog}
-          </button>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="ajustes-usuario.html">Ajustes</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" onclick="window.cerrarSesion()">Cerrar sesión</a></li>
-          </ul>
-        </div>
-      </div>
-    `;
-  }
-
-  // ========== MAPEO DE PERFIL (similar a ajustes.js) ==========
-  function mapPerfilUsuario(data) {
-    const email =
-      data.email ||
-      (data.user && data.user.email) ||
-      "";
-
-    const username =
-      data.username ||
-      (data.user && data.user.username) ||
-      "";
-
-    const nombreCompleto =
-      data.nombre_completo ||
-      [
-        data.first_name || (data.user && data.user.first_name),
-        data.last_name || (data.user && data.user.last_name),
-      ]
-        .filter(Boolean)
-        .join(" ") ||
-      username ||
-      "Usuario";
-
-    let rol = "Usuario";
-    if (typeof data.is_staff !== "undefined") {
-      rol = data.is_staff ? "Administrador" : "Usuario";
-    }
-    if (data.rol) {
-      rol = data.rol;
-    }
-
-    return { email, username, nombreCompleto, rol };
-  }
-
-  // ========== CARGAR PERFIL SOLO LECTURA ==========
-  async function cargarPerfilSoloLectura() {
-    try {
-      const data = await API.get("usuarios/me/");
-      const { email, username, nombreCompleto, rol } = mapPerfilUsuario(data);
-
-      // Inputs del formulario (todos deshabilitados)
-      const inputFirstName = document.getElementById("firstName");
-      const inputLastName = document.getElementById("lastName");
-      const inputEmail = document.getElementById("emailUsuario");
-      const inputUsername = document.getElementById("username");
-      const inputRol = document.getElementById("rol");
-
-      // Separamos nombre en firstName / lastName solo para mostrar
-      let firstName = nombreCompleto;
-      let lastName = "";
-      const partesNombre = nombreCompleto.trim().split(" ");
-      if (partesNombre.length > 1) {
-        firstName = partesNombre.slice(0, -1).join(" ");
-        lastName = partesNombre.slice(-1).join(" ");
-      }
-
-      if (inputFirstName) {
-        inputFirstName.value = firstName;
-        inputFirstName.disabled = true;
-      }
-      if (inputLastName) {
-        inputLastName.value = lastName;
-        inputLastName.disabled = true;
-      }
-      if (inputEmail) {
-        inputEmail.value = email;
-        inputEmail.disabled = true;
-      }
-      if (inputUsername) {
-        inputUsername.value = username;
-        inputUsername.disabled = true;
-      }
-      if (inputRol) {
-        inputRol.value = rol;
-        inputRol.disabled = true;
-      }
-
-      // Avatar + textos de cabecera
-      const nombreUsuarioDisplay = document.getElementById("nombreUsuarioDisplay");
-      const usernameDisplay = document.getElementById("usernameDisplay");
-      const avatarInitial = document.getElementById("avatarInitial");
-
-      if (nombreUsuarioDisplay) {
-        nombreUsuarioDisplay.textContent = nombreCompleto;
-      }
-      if (usernameDisplay) {
-        usernameDisplay.textContent = username;
-      }
-      if (avatarInitial) {
-        avatarInitial.textContent = (nombreCompleto.charAt(0) || "U").toUpperCase();
-      }
-
-      // Info lateral (sidebar derecha)
-      const sidebarUsername = document.getElementById("sidebarUsername");
-      const sidebarEmail = document.getElementById("sidebarEmail");
-      const sidebarRol = document.getElementById("sidebarRol");
-
-      if (sidebarUsername) sidebarUsername.textContent = username;
-      if (sidebarEmail) sidebarEmail.textContent = email;
-      if (sidebarRol) sidebarRol.textContent = rol;
-
-      // Desactivar completamente el submit del formulario de perfil
-      const perfilForm = document.getElementById("perfilForm");
-      if (perfilForm) {
-        const submitBtn = perfilForm.querySelector('button[type="submit"]');
-        perfilForm.addEventListener("submit", (e) => e.preventDefault());
-        if (submitBtn) {
-          submitBtn.disabled = true;
-          submitBtn.classList.add("disabled");
-          submitBtn.title = "Estos datos solo pueden ser modificados por un administrador.";
+        try {
+          await API.post("usuarios/cambiar_password/", { old_password, new_password });
+          alert("Contraseña actualizada correctamente");
+          document.getElementById("formPassword").reset();
+        } catch (err) {
+          alert("Error: Verifica tu contraseña actual");
         }
-      }
-    } catch (err) {
-      console.error("Error al cargar perfil:", err);
-      if (window.Swal) {
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "No se pudo cargar tu información de perfil.",
-        });
-      } else {
-        alert("No se pudo cargar tu información de perfil.");
-      }
-    }
-  }
-
-  // ========== SEGURIDAD: CONTRASEÑA (se mantiene editable) ==========
-  function evaluarFuerza(pass, strengthBar, msgPass) {
-    if (!strengthBar || !msgPass) return;
-
-    const regexMayus = /[A-Z]/;
-    const regexNum = /[0-9]/;
-
-    let fuerza = 0;
-    if (pass.length >= 8) fuerza++;
-    if (regexMayus.test(pass)) fuerza++;
-    if (regexNum.test(pass)) fuerza++;
-
-    strengthBar.className = "password-strength";
-    msgPass.style.color = "#6c757d";
-
-    if (!pass) {
-      msgPass.textContent = "Debe tener mínimo 8 caracteres, una mayúscula y un número";
-      return;
-    }
-
-    if (fuerza === 1) {
-      strengthBar.classList.add("strength-weak");
-      msgPass.textContent = "Muy débil — agrega número y mayúscula";
-      msgPass.style.color = "#dc3545";
-    } else if (fuerza === 2) {
-      strengthBar.classList.add("strength-medium");
-      msgPass.textContent = "Casi lista — refuérzala un poco más";
-      msgPass.style.color = "#ffc107";
-    } else if (fuerza === 3) {
-      strengthBar.classList.add("strength-strong");
-      msgPass.textContent = "¡Contraseña segura! 😄";
-      msgPass.style.color = "#28a745";
-    }
-  }
-
-  async function manejarCambioPassword(e) {
-    e.preventDefault();
-
-    const passActual = document.getElementById("passActual");
-    const passNueva = document.getElementById("passNueva");
-    const passConfirm = document.getElementById("passConfirm");
-    const strengthBar = document.getElementById("strengthBar");
-
-    if (!passActual || !passNueva || !passConfirm) return;
-
-    const actual = passActual.value;
-    const nueva = passNueva.value;
-    const confirmar = passConfirm.value;
-
-    if (!actual || !nueva || !confirmar) {
-      Swal.fire({
-        icon: "warning",
-        title: "Campos incompletos",
-        text: "Todos los campos son obligatorios.",
       });
-      return;
-    }
-
-    if (nueva !== confirmar) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Las contraseñas no coinciden.",
-      });
-      return;
-    }
-
-    if (strengthBar && !strengthBar.classList.contains("strength-strong")) {
-      Swal.fire({
-        icon: "warning",
-        title: "Contraseña débil",
-        text: "La contraseña debe ser más segura.",
-      });
-      return;
-    }
-
-    const payload = {
-      old_password: actual,
-      new_password: nueva,
-    };
-
-    try {
-      const btn = e.submitter || e.target.querySelector("button[type='submit']");
-      if (btn) {
-        btn.disabled = true;
-        btn.innerHTML =
-          '<span class="spinner-border spinner-border-sm me-1"></span>Cambiando...';
-      }
-
-      await API.post("usuarios/cambiar_password/", payload);
-
-      Swal.fire({
-        icon: "success",
-        title: "Contraseña actualizada",
-        text: "Tu contraseña se ha cambiado correctamente.",
-        timer: 2000,
-        showConfirmButton: false,
-      });
-
-      passActual.value = "";
-      passNueva.value = "";
-      passConfirm.value = "";
-      if (strengthBar) {
-        strengthBar.className = "password-strength";
-      }
-    } catch (err) {
-      console.error("Error al cambiar contraseña:", err);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "No se pudo cambiar la contraseña. Verifica que la actual sea correcta.",
-      });
-    } finally {
-      const btn = e.submitter || e.target.querySelector("button[type='submit']");
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML =
-          '<i class="bi bi-shield-lock me-2"></i> Cambiar contraseña';
-      }
-    }
-  }
-
-  // ========== CERRAR SESIÓN & TEMA ==========
-  window.cerrarSesion = function () {
-    localStorage.clear();
-    window.location.href = "/paginas/login/login.html";
-  };
-
-  function configurarTema() {
-    const body = document.body;
-    const toggle = document.getElementById("btn-dark-toggle");
-    const icon = document.getElementById("dark-icon");
-    if (!toggle || !icon) return;
-
-    const temaGuardado = localStorage.getItem("theme") || "light";
-    if (temaGuardado === "dark") {
-      body.classList.add("dark-mode");
-      icon.classList.replace("bi-moon-stars-fill", "bi-brightness-high-fill");
-    }
-
-    toggle.addEventListener("click", () => {
-      const esDark = body.classList.toggle("dark-mode");
-      icon.classList.toggle("bi-moon-stars-fill", !esDark);
-      icon.classList.toggle("bi-brightness-high-fill", esDark);
-      localStorage.setItem("theme", esDark ? "dark" : "light");
     });
-  }
-
-  // ========== INIT ==========
-  document.addEventListener("DOMContentLoaded", () => {
-    cargarTopbarUsuario();
-    cargarSidebarUsuario();
-    configurarTema();
-
-    // Perfil solo lectura
-    cargarPerfilSoloLectura();
-
-    // Seguridad (cambio de contraseña)
-    const passwordForm = document.getElementById("passwordForm");
-    if (passwordForm) {
-      const passNueva = document.getElementById("passNueva");
-      const strengthBar = document.getElementById("strengthBar");
-      const msgPass = document.getElementById("msgPass");
-
-      if (passNueva && strengthBar && msgPass) {
-        passNueva.addEventListener("input", (e) =>
-          evaluarFuerza(e.target.value, strengthBar, msgPass)
-        );
-      }
-
-      passwordForm.addEventListener("submit", manejarCambioPassword);
-    }
-  });
-</script>
-
+  </script>
 </body>
 </html>

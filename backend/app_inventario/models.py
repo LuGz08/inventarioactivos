@@ -6,8 +6,8 @@ import qrcode
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
-
-
+from datetime import timedelta, date
+from django.utils import timezone
 class Proveedores(models.Model):
     """Proveedores de productos tecnológicos"""
     nombre = models.CharField(max_length=200)
@@ -37,7 +37,8 @@ class Marcas(models.Model):
 class Categorias(models.Model):
     """Categorías de productos (Computadores, Impresoras, Tablets, etc.)"""
     nombre = models.CharField(max_length=100, unique=True)
-    imagen =models.ImageField(upload_to='categorias/', blank=True, null=True)
+    imagen = models.ImageField(upload_to='categorias/', blank=True, null=True)
+
     class Meta:
         verbose_name_plural = "Categorías"
 
@@ -81,27 +82,49 @@ class Sucursales(models.Model):
 
     def __str__(self):
         return self.nombre
+class Facturas(models.Model):
+    """Facturas de compra de productos"""
+    numero_factura = models.CharField(max_length=100, unique=True, verbose_name="Número de Factura")
+    fecha_emision = models.DateField()
+    proveedor = models.ForeignKey(Proveedores, on_delete=models.PROTECT, related_name='facturas', null=True)
+    monto_total = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Monto Total")
+    archivo = models.FileField(upload_to='facturas/', blank=True, null=True)
+    observaciones = models.TextField(blank=True, null=True)
+    fecha_registro = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        verbose_name = "Factura"
+        verbose_name_plural = "Facturas"
+        ordering = ['-fecha_emision']
 
+    def __str__(self):
+        return f"{self.numero_factura} - {self.proveedor.nombre}"
+
+# ==========================================
+# MODELO PRODUCTOS MEJORADO (GARANTÍAS)
+# ==========================================
 class Productos(models.Model):
-    """Productos/Activos tecnológicos"""
+    """Productos/Activos tecnológicos con lógica de garantía"""
 
     nro_serie = models.CharField(max_length=100, unique=True, verbose_name="Número de Serie")
     fecha_compra = models.DateField()
     estado = models.ForeignKey(Estados, on_delete=models.PROTECT, related_name='productos')
-    documento_factura = models.CharField(max_length=200, blank=True, null=True)
     
-    # Campos de garantía
-    garantia_meses = models.PositiveIntegerField(default=12)  
-    fecha_venc_garantia = models.DateField(blank=True, null=True)
+    valor_compra = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, default=0)
+    
+    facturas = models.ManyToManyField(Facturas, related_name='productos', blank=True, verbose_name="Facturas asociadas")
+    
+    # --- CAMPOS DE GARANTÍA ---
+    garantia_meses = models.PositiveIntegerField(default=12, verbose_name="Meses de Garantía")  
+    fecha_venc_garantia = models.DateField(blank=True, null=True, verbose_name="Vencimiento Garantía")
 
     ESTADOS_GARANTIA = [
         ('VIGENTE', 'Vigente'),
+        ('POR_VENCER', 'Por Vencer'), # Nuevo estado (alerta)
         ('VENCIDA', 'Vencida'),
         ('NO_APLICA', 'No aplica')
     ]
     estado_garantia = models.CharField(max_length=20, choices=ESTADOS_GARANTIA, default='VIGENTE')
-
 
     # Relaciones
     proveedor = models.ForeignKey(Proveedores, on_delete=models.PROTECT, related_name='productos')
@@ -113,28 +136,37 @@ class Productos(models.Model):
         verbose_name_plural = "Productos"
 
     def save(self, *args, **kwargs):
-        """Calcular fecha de vencimiento de garantía automáticamente."""
-        from datetime import timedelta
-        from django.utils import timezone
-
-        if self.fecha_compra and self.garantia_meses:
-            # Calcular vencimiento
+        """Calcula automáticamente el vencimiento y estado de la garantía al guardar"""
+        if self.fecha_compra and self.garantia_meses is not None:
+            # 1. Calcular vencimiento (Fecha Compra + (Meses * 30 días))
             self.fecha_venc_garantia = self.fecha_compra + timedelta(days=self.garantia_meses * 30)
 
-            # Actualizar estado
+            # 2. Determinar estado según fecha actual
             hoy = timezone.now().date()
-            if hoy > self.fecha_venc_garantia:
+            dias_restantes = (self.fecha_venc_garantia - hoy).days
+
+            if dias_restantes < 0:
                 self.estado_garantia = 'VENCIDA'
+            elif dias_restantes <= 30: # Alerta si queda menos de un mes
+                self.estado_garantia = 'POR_VENCER'
             else:
                 self.estado_garantia = 'VIGENTE'
+        else:
+            self.fecha_venc_garantia = None
+            self.estado_garantia = 'NO_APLICA'
 
         super().save(*args, **kwargs)
 
+    @property
+    def dias_restantes_garantia(self):
+        """Propiedad virtual para usar en frontend/serializers"""
+        if self.fecha_venc_garantia:
+            hoy = timezone.now().date()
+            return (self.fecha_venc_garantia - hoy).days
+        return 0
 
     def __str__(self):
         return f"{self.categoria} - {self.nro_serie} ({self.modelo})"
-
-
 class Usuarios(models.Model):
     """Usuarios del sistema (empleados que usan los productos)"""
     ROLES = [
@@ -142,35 +174,12 @@ class Usuarios(models.Model):
         ('USUARIO', 'Usuario'),
     ]
 
-    #Llamamos al user default de django que contiene:
-        # Campos principales:
-        #user.username          # Nombre de usuario (único, requerido)
-        #user.password          # Contraseña hasheada (nunca en texto plano)
-        #user.email             # Email
-        #user.first_name        # Nombre
-        #user.last_name         # Apellido
-
-        # Campos de estado:
-        #user.is_active         # Usuario activo (True/False)
-        #user.is_staff          # Puede acceder al admin (True/False)
-        #user.is_superuser      # Superusuario con todos los permisos
-
-        # Fechas:
-        #user.date_joined       # Fecha de registro
-        #user.last_login        # Último login
-
-        # Métodos útiles:
-        #user.get_full_name()   # Retorna "Nombre Apellido"
-        #user.set_password('nueva_pass')  # Hashea y guarda contraseña
-        #user.check_password('pass')      # Verifica si la contraseña es correcta
-
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil_usuario')
     rol = models.CharField(max_length=20, choices=ROLES, default='USUARIO')
     
-
-    
     def __str__(self):
         return f"{self.user.get_full_name()} ({self.user.username})"
+
 
 class Asignaciones(models.Model):
     """Asignación de productos a usuarios"""
@@ -200,6 +209,7 @@ class Mantenciones(models.Model):
 
     def __str__(self):
         return f"Mantención {self.producto.nro_serie} - {self.fecha}"
+
 
 class Movimientos(models.Model):
     """
@@ -244,6 +254,7 @@ class Movimientos(models.Model):
     def __str__(self):
         return f"[{self.get_tipo_display()}] {self.sku} x{self.cantidad} ({self.fecha.strftime('%d/%m/%Y %H:%M')})"
 
+
 class HistorialEstados(models.Model):
     """Historial de cambios de estado de los productos"""
     producto = models.ForeignKey(Productos, on_delete=models.CASCADE, related_name='historial_estados')
@@ -273,8 +284,9 @@ class Documentaciones(models.Model):
         return f"{self.tipo_documento} - {self.nombre_archivo}"
 
 
-
 User = get_user_model()
+
+
 class Notificaciones(models.Model):
 
     CATEGORIAS = [
@@ -317,7 +329,6 @@ class Notificaciones(models.Model):
         verbose_name = "Notificación"
         verbose_name_plural = "Notificaciones"
         ordering = ['-fecha_creacion']
-        # Indexes: NO usar "-" dentro de fields
         indexes = [
             models.Index(fields=['fecha_creacion']),
             models.Index(fields=['usuario', 'leido']),
@@ -344,7 +355,8 @@ class LogAcceso(models.Model):
         ordering = ['-fecha_hora']
 
     def __str__(self):
-        return f"{self.usuario.usuario_login} - {self.fecha_hora.strftime('%d/%m/%Y %H:%M:%S')}"
+        # usuario → Usuarios → user (User de Django)
+        return f"{self.usuario.user.username} - {self.fecha_hora.strftime('%d/%m/%Y %H:%M:%S')}"
     
 
 class CodigoQR(models.Model):

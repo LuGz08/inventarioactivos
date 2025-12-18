@@ -41,10 +41,10 @@ from .views import (
     CPUViewSet,
     GPUViewSet,
     ComponentesViewSet,
+    FacturasViewSet
 
 )
 
-# Crear el router
 router = DefaultRouter()
 
 # Registrar todos los ViewSets
@@ -67,6 +67,7 @@ router.register(r'movimientos', MovimientosViewSet, basename='movimientos')
 router.register(r'cpu', CPUViewSet)
 router.register(r'gpu', GPUViewSet)
 router.register(r'componentes', ComponentesViewSet)
+router.register(r'facturas', FacturasViewSet, basename='facturas')
 
 # URLs de la app
 urlpatterns = [
@@ -121,7 +122,6 @@ urlpatterns = [
 
     #   CONFIGURACION
     path('configuracion/', views.configuracion, name='configuracion'),
-
 
     # ============= ENDPOINTS AJAX =============
     path('get-modelos-by-marca/', views.get_modelos_by_marca, name='get_modelos_by_marca'),

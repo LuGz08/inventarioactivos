@@ -1,1578 +1,881 @@
 // src/js/productos.js
-// Frontend CRUD para Productos (lista, filtro, detalle, crear, editar, eliminar)
-// Requiere: /src/js/api.js que exporta { API } y JWT válido en localStorage.
-
 import { API } from "/src/js/api.js";
 
-// -----------------------------------------------------------
-// Utilidades generales
-// -----------------------------------------------------------
+// ==========================================
+// 0. UTILIDADES GENERALES
+// ==========================================
 
-function getParam(name) {
-  return new URLSearchParams(window.location.search).get(name);
-}
+const getParam = (name) => new URLSearchParams(window.location.search).get(name);
 
-function nombreProducto(prod) {
+const nombreProducto = (prod) => {
   if (!prod) return "";
-  // Asumimos que el serializer expone modelo_nombre + nro_serie
-  return `${prod.modelo_nombre} - ${prod.nro_serie}`;
-}
+  const modelo = prod.modelo_nombre || (prod.modelo ? prod.modelo.nombre : "");
+  return modelo ? `${modelo} - ${prod.nro_serie}` : prod.nro_serie;
+};
 
-let productosCache = []; // lista completa desde la API
-let productoActualDetalle = null; // producto cargado en detalle para cambio de estado
+// Helper para extraer texto de campos que pueden ser objeto o string/null
+const getNombreCampo = (campo, fallback = "—") => {
+  if (campo === null || campo === undefined) return fallback;
+  if (typeof campo === "object") {
+    return campo.nombre || campo.nombre_categoria || campo.nombre_sucursal || campo.nombre_estado || JSON.stringify(campo);
+  }
+  return campo;
+};
 
-// -----------------------------------------------------------
-// DETECCIÓN DE PÁGINA
-// -----------------------------------------------------------
+// Helper para obtener ID de campos que pueden ser objeto o ID directo
+const getId = (campo) => {
+  if (!campo) return "";
+  return typeof campo === "object" ? campo.id : campo;
+};
+
+let productosCache = [];
+let productoActualDetalle = null;
+
+// ==========================================
+// DETECCIÓN DE PÁGINA (ROUTER)
+// ==========================================
 
 document.addEventListener("DOMContentLoaded", () => {
   const path = window.location.pathname;
 
-  if (path.endsWith("listar.html")) {
-    initListar();
-  } else if (path.endsWith("detalle.html")) {
-    initDetalle();
-  } else if (path.endsWith("agregar.html")) {
-    initAgregar();
-  } else if (path.endsWith("editar.html")) {
-    initEditar();
-  } else if (path.endsWith("eliminar.html")) {
-    initEliminar();
-  }
+  if (path.includes("listar.html")) initListar();
+  else if (path.includes("detalle.html")) initDetalle();
+  else if (path.includes("agregar.html")) initAgregar(); // Usa lógica compartida
+  else if (path.includes("editar.html")) initEditar();   // Usa lógica compartida + carga de datos
+  else if (path.includes("eliminar.html")) initEliminar();
 });
 
-// -----------------------------------------------------------
-// LISTAR (listar.html)
-// -----------------------------------------------------------
+// ==========================================
+// 1. LISTAR (listar.html)
+// ==========================================
 
 function initListar() {
-  const btnTabla = document.getElementById("btnTabla");
-  const btnTarjetas = document.getElementById("btnTarjetas");
-  const vistaTabla = document.getElementById("vistaTabla");
-  const vistaTarjetas = document.getElementById("vistaTarjetas");
-  const vistaTablaComponentes = document.getElementById("vistaTablaComponentes");
+  const elementos = {
+    btnTabla: document.getElementById("btnTabla"),
+    btnTarjetas: document.getElementById("btnTarjetas"),
+    vistaTabla: document.getElementById("vistaTabla"),
+    vistaTarjetas: document.getElementById("vistaTarjetas"),
+    vistaTablaComp: document.getElementById("vistaTablaComponentes"),
+    btnFiltroComp: document.getElementById("btnFiltroComponentes"),
+    filtrosComp: document.getElementById("filtrosComponentes"),
+    inputBuscar: document.getElementById("inputBuscar"),
+    filtros: [
+      "filtroCategoria", "filtroSucursal", "filtroEstado",
+      "filtroCPU", "filtroGPU", "filtroRAMMin", "filtroAlmMin"
+    ].map(id => document.getElementById(id))
+  };
 
-  // Toggle tabla/tarjetas (modificar para incluir tabla de componentes)
-  if (btnTabla && btnTarjetas && vistaTabla && vistaTarjetas && vistaTablaComponentes) {
-    btnTabla.addEventListener("click", () => {
-      btnTabla.classList.add("active");
-      btnTarjetas.classList.remove("active");
+  // Toggle Vistas
+  const toggleVista = (modo) => {
+    const mostrarComp = elementos.btnFiltroComp?.classList.contains("active");
+    
+    if (modo === 'tabla') {
+      elementos.btnTabla.classList.add("active");
+      elementos.btnTarjetas.classList.remove("active");
+      elementos.vistaTarjetas.classList.add("d-none");
       
-      const mostrarComponentes = document.getElementById("btnFiltroComponentes").classList.contains("active");
-      
-      if (mostrarComponentes) {
-        vistaTablaComponentes.classList.remove("d-none");
-        vistaTabla.classList.add("d-none");
+      if (mostrarComp) {
+        elementos.vistaTablaComp.classList.remove("d-none");
+        elementos.vistaTabla.classList.add("d-none");
       } else {
-        vistaTabla.classList.remove("d-none");
-        vistaTablaComponentes.classList.add("d-none");
+        elementos.vistaTabla.classList.remove("d-none");
+        elementos.vistaTablaComp.classList.add("d-none");
       }
-      vistaTarjetas.classList.add("d-none");
-    });
+    } else {
+      elementos.btnTarjetas.classList.add("active");
+      elementos.btnTabla.classList.remove("active");
+      elementos.vistaTabla.classList.add("d-none");
+      elementos.vistaTablaComp.classList.add("d-none");
+      elementos.vistaTarjetas.classList.remove("d-none");
+    }
+  };
 
-    btnTarjetas.addEventListener("click", () => {
-      btnTarjetas.classList.add("active");
-      btnTabla.classList.remove("active");
-      vistaTabla.classList.add("d-none");
-      vistaTablaComponentes.classList.add("d-none");
-      vistaTarjetas.classList.remove("d-none");
+  if (elementos.btnTabla) elementos.btnTabla.addEventListener("click", () => toggleVista('tabla'));
+  if (elementos.btnTarjetas) elementos.btnTarjetas.addEventListener("click", () => toggleVista('tarjetas'));
+
+  // Toggle Filtros Componentes
+  if (elementos.btnFiltroComp) {
+    elementos.btnFiltroComp.addEventListener("click", () => {
+      elementos.btnFiltroComp.classList.toggle("active");
+      const isActive = elementos.btnFiltroComp.classList.contains("active");
+      
+      if (isActive) elementos.filtrosComp.classList.add("show");
+      else elementos.filtrosComp.classList.remove("show");
+
+      if (isActive && elementos.btnTabla.classList.contains("active")) toggleVista('tabla');
+      else if (!isActive && elementos.btnTabla.classList.contains("active")) toggleVista('tabla');
+      
+      aplicarFiltrosYRender();
     });
   }
 
-  const inputBuscar = document.getElementById("inputBuscar");
-  const filtroCategoria = document.getElementById("filtroCategoria");
-  const filtroSucursal = document.getElementById("filtroSucursal");
-  const filtroEstado = document.getElementById("filtroEstado");
-
-  // ✅ Nuevos filtros de componentes
-  const filtroCPU = document.getElementById("filtroCPU");
-  const filtroGPU = document.getElementById("filtroGPU");
-  const filtroRAMMin = document.getElementById("filtroRAMMin");
-  const filtroAlmMin = document.getElementById("filtroAlmMin");
-  const btnFiltroComponentes = document.getElementById("btnFiltroComponentes");
-  const btnLimpiarFiltrosComp = document.getElementById("btnLimpiarFiltrosComp");
-
-
+  // Listeners de filtros
   const reCargar = () => aplicarFiltrosYRender();
+  if (elementos.inputBuscar) elementos.inputBuscar.addEventListener("input", reCargar);
+  elementos.filtros.forEach(el => { if(el) el.addEventListener("change", reCargar); });
 
-  if (inputBuscar) inputBuscar.addEventListener("input", reCargar);
-  if (filtroCategoria) filtroCategoria.addEventListener("change", reCargar);
-  if (filtroSucursal) filtroSucursal.addEventListener("change", reCargar);
-  if (filtroEstado) filtroEstado.addEventListener("change", reCargar);
-
-  // ✅ Listeners de filtros de componentes
-  if (filtroCPU) filtroCPU.addEventListener("change", reCargar);
-  if (filtroGPU) filtroGPU.addEventListener("change", reCargar);
-  if (filtroRAMMin) filtroRAMMin.addEventListener("input", reCargar);
-  if (filtroAlmMin) filtroAlmMin.addEventListener("input", reCargar);
-  
-  // ✅ Toggle de vista de componentes
-  if (btnFiltroComponentes) {
-    btnFiltroComponentes.addEventListener("click", () => {
-      const filtrosDiv = document.getElementById("filtrosComponentes");
-      
-      // Alternar el estado activo del botón
-      btnFiltroComponentes.classList.toggle("active");
-      
-      // Alternar la visibilidad del panel de filtros
-      if (btnFiltroComponentes.classList.contains("active")) {
-        filtrosDiv.classList.add("show");
-      } else {
-        filtrosDiv.classList.remove("show");
-      }
-      
-      // Cambiar entre tabla normal y tabla con componentes
-      const vistaTabla = document.getElementById("vistaTabla");
-      const vistaTablaComponentes = document.getElementById("vistaTablaComponentes");
-      const vistaTarjetas = document.getElementById("vistaTarjetas");
-      
-      if (btnFiltroComponentes.classList.contains("active")) {
-        vistaTabla.classList.add("d-none");
-        vistaTablaComponentes.classList.remove("d-none");
-        vistaTarjetas.classList.add("d-none");
-        
-        // Asegurar que el botón tabla esté activo
-        document.getElementById("btnTabla")?.classList.add("active");
-        document.getElementById("btnTarjetas")?.classList.remove("active");
-      } else {
-        vistaTablaComponentes.classList.add("d-none");
-        vistaTabla.classList.remove("d-none");
-      }
-      
-      reCargar();
+  document.getElementById("btnLimpiarFiltrosComp")?.addEventListener("click", () => {
+    ["filtroCPU", "filtroGPU", "filtroRAMMin", "filtroAlmMin"].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.value = "";
     });
-  }
-  // ✅ Limpiar filtros de componentes
-  if (btnLimpiarFiltrosComp) {
-    btnLimpiarFiltrosComp.addEventListener("click", () => {
-      if (filtroCPU) filtroCPU.value = "";
-      if (filtroGPU) filtroGPU.value = "";
-      if (filtroRAMMin) filtroRAMMin.value = "";
-      if (filtroAlmMin) filtroAlmMin.value = "";
-      reCargar();
-    });
-  }
+    reCargar();
+  });
 
   cargarProductosLista();
 }
 
-
-// ✅ Agregar función para poblar filtros de componentes
-function poblarFiltrosComponentes() {
-  const filtroCPU = document.getElementById("filtroCPU");
-  const filtroGPU = document.getElementById("filtroGPU");
-  
-  if (!productosCache.length) return;
-  
-  // Extraer CPUs únicas
-  const cpus = new Map();
-  const gpus = new Map();
-  
-  productosCache.forEach(p => {
-    if (p.componentes) {
-      if (p.componentes.cpu) {
-        const cpu = p.componentes.cpu;
-        cpus.set(cpu.id, `${cpu.marca} ${cpu.modelo}`);
-      }
-      if (p.componentes.gpu) {
-        const gpu = p.componentes.gpu;
-        gpus.set(gpu.id, `${gpu.marca} ${gpu.modelo}`);
-      }
-    }
-  });
-  
-  // Poblar select de CPUs
-  if (filtroCPU) {
-    filtroCPU.innerHTML = `<option value="">Todas las CPUs</option>`;
-    cpus.forEach((nombre, id) => {
-      filtroCPU.innerHTML += `<option value="${id}">${nombre}</option>`;
-    });
-  }
-  
-  // Poblar select de GPUs
-  if (filtroGPU) {
-    filtroGPU.innerHTML = `<option value="">Todas las GPUs</option>`;
-    gpus.forEach((nombre, id) => {
-      filtroGPU.innerHTML += `<option value="${id}">${nombre}</option>`;
-    });
-  }
-}
-
-
-// Modificar cargarProductosLista para incluir filtros de componentes:
 async function cargarProductosLista() {
   const tbody = document.getElementById("tbodyProductos");
-  const cardsCont = document.getElementById("cardsProductos");
-
-  if (tbody) {
-    tbody.innerHTML = `<tr><td colspan="9">Cargando productos...</td></tr>`;
-  }
-  if (cardsCont) {
-    cardsCont.innerHTML = `<p>Cargando productos...</p>`;
-  }
+  if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="text-center">Cargando productos...</td></tr>`;
 
   try {
     const res = await API.get("productos/");
     productosCache = Array.isArray(res) ? res : (res.results || []);
 
-    poblarFiltrosDesdeProductos();
-    poblarFiltrosComponentes(); // ✅ Agregar esta línea
+    poblarFiltrosSelects();
+    poblarFiltrosComponentes();
     aplicarFiltrosYRender();
-    aplicarFiltroDesdeURL();
-
   } catch (err) {
-    console.error("Error al cargar productos:", err);
-    if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="9">Error al cargar productos</td></tr>`;
-    }
-    if (cardsCont) {
-      cardsCont.innerHTML = `<p>Error al cargar productos</p>`;
-    }
+    console.error("Error loading products:", err);
+    if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="text-danger text-center">Error al cargar productos</td></tr>`;
   }
 }
 
-function poblarFiltrosDesdeProductos() {
-  function getNombreCampo(campo, fallback = "—") {
-    if (campo === null || campo === undefined) return fallback;
-    if (typeof campo === "object") {
-      if (campo.nombre) return campo.nombre;
-      if (campo.nombre_categoria) return campo.nombre_categoria;
-      if (campo.nombre_sucursal) return campo.nombre_sucursal;
-      if (campo.nombre_estado) return campo.nombre_estado;
-      if (campo.garantia_meses) return campo.garantia_meses;
-      return JSON.stringify(campo);
-    }
-    return campo;
-  }
-
-  if (!productosCache.length) return;
-
-  const filtroCategoria = document.getElementById("filtroCategoria");
-  const filtroSucursal = document.getElementById("filtroSucursal");
-  const filtroEstado = document.getElementById("filtroEstado");
-
-  const cats = [...new Set(
-    productosCache.map(p =>
-      p.categoria_nombre || getNombreCampo(p.categoria, null)
-    ).filter(Boolean)
-  )];
-
-  const sucs = [...new Set(
-    productosCache.map(p =>
-      p.sucursal_nombre || getNombreCampo(p.sucursal, null)
-    ).filter(Boolean)
-  )];
-
-  const ests = [...new Set(
-    productosCache.map(p =>
-      p.estado_nombre || getNombreCampo(p.estado, null)
-    ).filter(Boolean)
-  )];
-
-  if (filtroCategoria) {
-    filtroCategoria.innerHTML = `<option value="">Categoría: Todas</option>` +
-      cats.map(c => `<option value="${c}">${c}</option>`).join("");
-  }
-
-  if (filtroSucursal) {
-    filtroSucursal.innerHTML = `<option value="">Sucursal: Todas</option>` +
-      sucs.map(s => `<option value="${s}">${s}</option>`).join("");
-  }
-
-  if (filtroEstado) {
-    filtroEstado.innerHTML = `<option value="">Estado: Todos</option>` +
-      ests.map(e => `<option value="${e}">${e}</option>`).join("");
-  }
-}
-
-function aplicarFiltroDesdeURL() {
-  const params = new URLSearchParams(window.location.search);
-  const categoriaId = params.get("categoria_id");
-  const categoriaNombre = params.get("categoria");
-
-  const selectCat = document.getElementById("filtroCategoria");
-  if (!selectCat) return;
-
-  let aplicado = false;
-
-  // 1) Intentar por ID (value del option)
-  if (categoriaId) {
-    for (const opt of selectCat.options) {
-      if (opt.value === categoriaId) {
-        selectCat.value = categoriaId;
-        aplicado = true;
-        break;
-      }
-    }
-  }
-
-  // 2) Si no se encontró por ID, intentamos por nombre de categoría
-  if (!aplicado && categoriaNombre) {
-    for (const opt of selectCat.options) {
-      if (opt.text.toLowerCase() === categoriaNombre.toLowerCase()) {
-        selectCat.value = opt.value;
-        aplicado = true;
-        break;
-      }
-    }
-  }
-
-  // Volvemos a filtrar con la función real
-  if (aplicado) {
-    aplicarFiltrosYRender();
-  }
-}
-
-// ✅ Modificar aplicarFiltrosYRender para incluir filtros de componentes
-function aplicarFiltrosYRender() {
-  function getNombreCampo(campo, fallback = "—") {
-    if (campo === null || campo === undefined) return fallback;
-    if (typeof campo === "object") {
-      if (campo.nombre) return campo.nombre;
-      if (campo.nombre_categoria) return campo.nombre_categoria;
-      if (campo.nombre_sucursal) return campo.nombre_sucursal;
-      if (campo.nombre_estado) return campo.nombre_estado;
-      return JSON.stringify(campo);
-    }
-    return campo;
-  }
-
-  const inputBuscar = document.getElementById("inputBuscar");
-  const filtroCategoria = document.getElementById("filtroCategoria");
-  const filtroSucursal = document.getElementById("filtroSucursal");
-  const filtroEstado = document.getElementById("filtroEstado");
+function poblarFiltrosSelects() {
+  const uniqueItems = (key, mapFn) => [...new Set(productosCache.map(mapFn).filter(Boolean))];
   
-  // ✅ Filtros de componentes
-  const filtroCPU = document.getElementById("filtroCPU");
-  const filtroGPU = document.getElementById("filtroGPU");
-  const filtroRAMMin = document.getElementById("filtroRAMMin");
-  const filtroAlmMin = document.getElementById("filtroAlmMin");
+  const cats = uniqueItems("categoria", p => p.categoria_nombre || getNombreCampo(p.categoria, null));
+  const sucs = uniqueItems("sucursal", p => p.sucursal_nombre || getNombreCampo(p.sucursal, null));
+  const ests = uniqueItems("estado", p => p.estado_nombre || getNombreCampo(p.estado, null));
 
-  const texto = (inputBuscar?.value || "").toLowerCase();
-  const cat = filtroCategoria?.value || "";
-  const suc = filtroSucursal?.value || "";
-  const est = filtroEstado?.value || "";
-  
-  // ✅ Valores de filtros de componentes
-  const cpuId = filtroCPU?.value || "";
-  const gpuId = filtroGPU?.value || "";
-  const ramMin = filtroRAMMin?.value ? parseInt(filtroRAMMin.value) : null;
-  const almMin = filtroAlmMin?.value ? parseInt(filtroAlmMin.value) : null;
+  const fillSelect = (id, label, items) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = `<option value="">${label}</option>` + items.map(i => `<option value="${i}">${i}</option>`).join("");
+  };
 
-  const filtrados = productosCache.filter(p => {
-    const t = texto.trim();
+  fillSelect("filtroCategoria", "Categoría: Todas", cats);
+  fillSelect("filtroSucursal", "Sucursal: Todas", sucs);
+  fillSelect("filtroEstado", "Estado: Todos", ests);
+}
 
-    const categoriaTexto = p.categoria_nombre || getNombreCampo(p.categoria, "");
-    const sucursalTexto = p.sucursal_nombre || getNombreCampo(p.sucursal, "");
-    const estadoTexto = p.estado_nombre || getNombreCampo(p.estado, "");
+function poblarFiltrosComponentes() {
+  const cpus = new Map();
+  const gpus = new Map();
 
-    const coincideTexto =
-      !t ||
-      (p.nro_serie || "").toLowerCase().includes(t) ||
-      nombreProducto(p).toLowerCase().includes(t) ||
-      categoriaTexto.toLowerCase().includes(t) ||
-      sucursalTexto.toLowerCase().includes(t);
-
-    const coincideCat = !cat || categoriaTexto === cat;
-    const coincideSuc = !suc || sucursalTexto === suc;
-    const coincideEst = !est || estadoTexto === est;
-    
-    // ✅ Filtros de componentes
-    let coincideComponentes = true;
-    
-    if (cpuId || gpuId || ramMin || almMin) {
-      const comp = p.componentes;
-      
-      if (!comp) {
-        coincideComponentes = false;
-      } else {
-        if (cpuId && (!comp.cpu || comp.cpu.id != cpuId)) {
-          coincideComponentes = false;
-        }
-        if (gpuId && (!comp.gpu || comp.gpu.id != gpuId)) {
-          coincideComponentes = false;
-        }
-        if (ramMin && (!comp.ram_gb || comp.ram_gb < ramMin)) {
-          coincideComponentes = false;
-        }
-        if (almMin && (!comp.almacenamiento_gb || comp.almacenamiento_gb < almMin)) {
-          coincideComponentes = false;
-        }
-      }
+  productosCache.forEach(p => {
+    if (p.componentes) {
+      if (p.componentes.cpu) cpus.set(p.componentes.cpu.id, `${p.componentes.cpu.marca} ${p.componentes.cpu.modelo}`);
+      if (p.componentes.gpu) gpus.set(p.componentes.gpu.id, `${p.componentes.gpu.marca} ${p.componentes.gpu.modelo}`);
     }
-
-    return coincideTexto && coincideCat && coincideSuc && coincideEst && coincideComponentes;
   });
 
-  const btnFiltroComponentes = document.getElementById("btnFiltroComponentes");
-  const modoComponentes = btnFiltroComponentes.classList.contains("active");
+  const fillComp = (id, label, map) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.innerHTML = `<option value="">${label}</option>`;
+      map.forEach((val, key) => el.innerHTML += `<option value="${key}">${val}</option>`);
+    }
+  };
+  fillComp("filtroCPU", "Todas las CPUs", cpus);
+  fillComp("filtroGPU", "Todas las GPUs", gpus);
+}
 
-  const vistaTabla = document.getElementById("vistaTabla");
-  const vistaTablaComponentes = document.getElementById("vistaTablaComponentes");
+function aplicarFiltrosYRender() {
+  const getVal = (id) => document.getElementById(id)?.value?.toLowerCase() || "";
+  
+  const texto = getVal("inputBuscar");
+  const cat = getVal("filtroCategoria");
+  const suc = getVal("filtroSucursal");
+  const est = getVal("filtroEstado");
+  const cpuId = getVal("filtroCPU");
+  const gpuId = getVal("filtroGPU");
+  const ramMin = parseFloat(document.getElementById("filtroRAMMin")?.value) || 0;
+  const almMin = parseFloat(document.getElementById("filtroAlmMin")?.value) || 0;
 
-  if (modoComponentes) {
-    // Mostrar tabla de componentes
-    vistaTabla.classList.add("d-none");
-    vistaTablaComponentes.classList.remove("d-none");
+  const filtrados = productosCache.filter(p => {
+    const matchTexto = !texto || [p.nro_serie, nombreProducto(p), getNombreCampo(p.categoria), getNombreCampo(p.sucursal)].some(field => String(field).toLowerCase().includes(texto));
+    const matchCat = !cat || String(p.categoria_nombre || getNombreCampo(p.categoria)).toLowerCase() === cat;
+    const matchSuc = !suc || String(p.sucursal_nombre || getNombreCampo(p.sucursal)).toLowerCase() === suc;
+    const matchEst = !est || String(p.estado_nombre || getNombreCampo(p.estado)).toLowerCase() === est;
 
-    renderTablaProductosConComponentes(filtrados);
+    let matchComp = true;
+    const c = p.componentes || {};
+    if (cpuId && (!c.cpu || String(c.cpu.id) !== cpuId)) matchComp = false;
+    if (gpuId && (!c.gpu || String(c.gpu.id) !== gpuId)) matchComp = false;
+    if (ramMin && (!c.ram_gb || c.ram_gb < ramMin)) matchComp = false;
+    if (almMin && (!c.almacenamiento_gb || c.almacenamiento_gb < almMin)) matchComp = false;
 
-  } else {
-    // Mostrar tabla normal
-    vistaTabla.classList.remove("d-none");
-    vistaTablaComponentes.classList.add("d-none");
+    return matchTexto && matchCat && matchSuc && matchEst && matchComp;
+  });
 
-    renderTablaProductos(filtrados);
-  }
-
-  // Tarjetas siempre se renderizan
+  const modoComp = document.getElementById("btnFiltroComponentes")?.classList.contains("active");
+  if (modoComp) renderTablaProductosConComponentes(filtrados);
+  else renderTablaProductos(filtrados);
   renderTarjetasProductos(filtrados);
 }
 
 function renderTablaProductos(lista) {
   const tbody = document.getElementById("tbodyProductos");
   if (!tbody) return;
+  if (!lista.length) return tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted">No hay coincidencias.</td></tr>`;
 
-  if (!lista.length) {
-    tbody.innerHTML = `<tr><td colspan="9">No hay productos que coincidan con el filtro.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = "";
-
-  lista.forEach(p => {
-    const tr = document.createElement("tr");
-
-    const sucursalTexto =
-      p.sucursal_nombre || getNombreCampo(p.sucursal, "—");
-    const estadoTexto =
-      p.estado_nombre || getNombreCampo(p.estado, "—");
-
-    const garantiaValor = p.garantia_meses ?? p.garantia ?? null;
-    const garantiaTexto =
-      garantiaValor === null || garantiaValor === "" ? "—" : `${garantiaValor} meses`;
-
-    tr.innerHTML = `
+  tbody.innerHTML = lista.map(p => `
+    <tr>
       <td><input type="checkbox"></td>
       <td>${p.nro_serie}</td>
       <td>${nombreProducto(p)}</td>
-      <td>${sucursalTexto}</td>
-      <td>${p.documento_factura || "—"}</td>
-      <td>${garantiaTexto}</td>
-      <td>${estadoTexto}</td>
+      <td>${getNombreCampo(p.sucursal)}</td>
+      <td>${(p.facturas_info && p.facturas_info.length) ? p.facturas_info[0].numero : "—"}</td>
+      <td>${p.garantia_meses ? p.garantia_meses + " meses" : "—"}</td>
+      <td>${getNombreCampo(p.estado)}</td>
       <td class="d-flex gap-1">
-        <a href="detalle.html?id=${p.id}" class="btn btn-sm btn-primary">
-          <i class="bi bi-eye"></i>
-        </a>
-        <a href="editar.html?id=${p.id}" class="btn btn-sm btn-warning">
-          <i class="bi bi-pencil"></i>
-        </a>
-        <a href="eliminar.html?id=${p.id}" class="btn btn-sm btn-danger">
-          <i class="bi bi-trash"></i>
-        </a>
+        <a href="detalle.html?id=${p.id}" class="btn btn-sm btn-primary"><i class="bi bi-eye"></i></a>
+        <a href="editar.html?id=${p.id}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
+        <a href="eliminar.html?id=${p.id}" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></a>
       </td>
-    `;
-
-    tbody.appendChild(tr);
-  });
+    </tr>
+  `).join("");
 }
 
-
-// ✅ Nueva función para renderizar tabla con componentes
 function renderTablaProductosConComponentes(lista) {
   const tbody = document.getElementById("tbodyProductosComponentes");
   if (!tbody) return;
+  if (!lista.length) return tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">No hay coincidencias.</td></tr>`;
 
-  if (!lista.length) {
-    tbody.innerHTML = `<tr><td colspan="10">No hay productos que coincidan con el filtro.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = "";
-
-  lista.forEach(p => {
-    const tr = document.createElement("tr");
-
-    const sucursalTexto = p.sucursal_nombre || getNombreCampo(p.sucursal, "—");
-    const estadoTexto = p.estado_nombre || getNombreCampo(p.estado, "—");
-
-    // Extraer datos de componentes
-    let cpuTexto = "—";
-    let gpuTexto = "—";
-    let ramTexto = "—";
-    let almTexto = "—";
-
-    if (p.componentes) {
-      const c = p.componentes;
-      
-      if (c.cpu) {
-        cpuTexto = `${c.cpu.marca} ${c.cpu.modelo}`;
-      }
-      
-      if (c.gpu) {
-        gpuTexto = `${c.gpu.marca} ${c.gpu.modelo}`;
-      }
-      
-      if (c.ram_gb) {
-        ramTexto = `${c.ram_gb} GB`;
-      }
-      
-      if (c.almacenamiento_gb) {
-        almTexto = `${c.almacenamiento_gb} GB`;
-      }
-    }
-
-    tr.innerHTML = `
+  tbody.innerHTML = lista.map(p => {
+    const c = p.componentes || {};
+    return `
+    <tr>
       <td><input type="checkbox"></td>
       <td>${p.nro_serie}</td>
       <td>${nombreProducto(p)}</td>
-      <td class="componentes-col" title="${cpuTexto}">
-        <small>${cpuTexto}</small>
-      </td>
-      <td class="componentes-col" title="${gpuTexto}">
-        <small>${gpuTexto}</small>
-      </td>
-      <td class="componentes-col">
-        <small>${ramTexto}</small>
-      </td>
-      <td class="componentes-col">
-        <small>${almTexto}</small>
-      </td>
-      <td>${sucursalTexto}</td>
-      <td>${estadoTexto}</td>
+      <td class="componentes-col"><small>${c.cpu ? `${c.cpu.marca} ${c.cpu.modelo}` : "—"}</small></td>
+      <td class="componentes-col"><small>${c.gpu ? `${c.gpu.marca} ${c.gpu.modelo}` : "—"}</small></td>
+      <td class="componentes-col"><small>${c.ram_gb ? c.ram_gb + " GB" : "—"}</small></td>
+      <td class="componentes-col"><small>${c.almacenamiento_gb ? c.almacenamiento_gb + " GB" : "—"}</small></td>
+      <td>${getNombreCampo(p.sucursal)}</td>
+      <td>${getNombreCampo(p.estado)}</td>
       <td class="d-flex gap-1">
-        <a href="detalle.html?id=${p.id}" class="btn btn-sm btn-primary">
-          <i class="bi bi-eye"></i>
-        </a>
-        <a href="editar.html?id=${p.id}" class="btn btn-sm btn-warning">
-          <i class="bi bi-pencil"></i>
-        </a>
-        <a href="eliminar.html?id=${p.id}" class="btn btn-sm btn-danger">
-          <i class="bi bi-trash"></i>
-        </a>
+        <a href="detalle.html?id=${p.id}" class="btn btn-sm btn-primary"><i class="bi bi-eye"></i></a>
+        <a href="editar.html?id=${p.id}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
+        <a href="eliminar.html?id=${p.id}" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></a>
       </td>
-    `;
-
-    tbody.appendChild(tr);
-  });
+    </tr>
+  `}).join("");
 }
 
-
-// ✅ Actualizar renderTarjetasProductos para mostrar componentes
 function renderTarjetasProductos(lista) {
-  function getNombreCampo(campo, fallback = "—") {
-    if (campo === null || campo === undefined) return fallback;
-    if (typeof campo === "object") {
-      if (campo.nombre) return campo.nombre;
-      if (campo.nombre_categoria) return campo.nombre_categoria;
-      if (campo.nombre_sucursal) return campo.nombre_sucursal;
-      if (campo.nombre_estado) return campo.nombre_estado;
-      return JSON.stringify(campo);
-    }
-    return campo;
-  }
-
   const cont = document.getElementById("cardsProductos");
   if (!cont) return;
+  if (!lista.length) return cont.innerHTML = `<p class="text-muted text-center w-100">No hay productos que coincidan.</p>`;
 
-  if (!lista.length) {
-    cont.innerHTML = `<p class="text-muted">No hay productos que coincidan con el filtro.</p>`;
-    return;
-  }
+  cont.innerHTML = lista.map(p => {
+    const c = p.componentes || {};
+    const compHtml = p.componentes ? `
+      <hr class="my-2">
+      <div class="text-start small text-muted">
+        ${c.cpu ? `<div><i class="bi bi-cpu"></i> ${c.cpu.marca} ${c.cpu.modelo}</div>` : ""}
+        ${c.gpu ? `<div><i class="bi bi-gpu-card"></i> ${c.gpu.marca} ${c.gpu.modelo}</div>` : ""}
+        ${c.ram_gb ? `<div><i class="bi bi-memory"></i> ${c.ram_gb} GB</div>` : ""}
+      </div>
+    ` : "";
 
-  cont.innerHTML = "";
-
-  lista.forEach(p => {
-    const col = document.createElement("div");
-    col.className = "col-md-4 col-lg-3 mb-3";
-
-    const garantiaValor = p.garantia_meses ?? p.garantia ?? null;
-    const garantiaTexto =
-      garantiaValor === null || garantiaValor === "" ? "—" : `${garantiaValor} meses`;
-    const categoriaTexto = p.categoria_nombre || getNombreCampo(p.categoria, "—");
-    const sucursalTexto = p.sucursal_nombre || getNombreCampo(p.sucursal, "Sin sucursal");
-    const estadoTexto = p.estado_nombre || getNombreCampo(p.estado, "—");
-
-    // ✅ Agregar información de componentes en las tarjetas
-    let componentesHTML = "";
-    if (p.componentes) {
-      const c = p.componentes;
-      componentesHTML = `
-        <hr class="my-2">
-        <div class="text-start small text-muted">
-          ${c.cpu ? `<div><i class="bi bi-cpu"></i> ${c.cpu.marca} ${c.cpu.modelo}</div>` : ""}
-          ${c.gpu ? `<div><i class="bi bi-gpu-card"></i> ${c.gpu.marca} ${c.gpu.modelo}</div>` : ""}
-          ${c.ram_gb ? `<div><i class="bi bi-memory"></i> RAM: ${c.ram_gb} GB</div>` : ""}
-          ${c.almacenamiento_gb ? `<div><i class="bi bi-hdd"></i> ${c.almacenamiento_gb} GB</div>` : ""}
-        </div>
-      `;
-    }
-
-    col.innerHTML = `
-      <div class="card p-3 h-100 text-center">
-        <h6 class="fw-bold mb-1">${nombreProducto(p)}</h6>
-        <small class="text-muted d-block mb-1">${categoriaTexto}</small>
-        <span class="badge bg-light text-dark mb-1">${sucursalTexto}</span>
-        <p class="small mb-1"><strong>Estado:</strong> ${estadoTexto}</p>
-        <p class="small mb-1"><strong>Garantía:</strong> ${garantiaTexto}</p>
-        
-        ${componentesHTML}
-
-        <div class="d-flex justify-content-center gap-1 mt-2">
-          <a href="detalle.html?id=${p.id}" class="btn btn-sm btn-primary">
-            <i class="bi bi-eye"></i>
-          </a>
-          <a href="editar.html?id=${p.id}" class="btn btn-sm btn-warning">
-            <i class="bi bi-pencil"></i>
-          </a>
-          <a href="eliminar.html?id=${p.id}" class="btn btn-sm btn-danger">
-            <i class="bi bi-trash"></i>
-          </a>
+    return `
+    <div class="col-md-4 col-lg-3 mb-3">
+      <div class="card p-3 h-100 text-center shadow-sm">
+        <h6 class="fw-bold mb-1 text-truncate">${nombreProducto(p)}</h6>
+        <small class="text-muted d-block mb-1">${getNombreCampo(p.categoria)}</small>
+        <span class="badge bg-light text-dark mb-1 border">${getNombreCampo(p.sucursal)}</span>
+        <p class="small mb-1"><strong>Estado:</strong> ${getNombreCampo(p.estado)}</p>
+        ${compHtml}
+        <div class="mt-auto pt-3 d-flex justify-content-center gap-1">
+          <a href="detalle.html?id=${p.id}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
+          <a href="editar.html?id=${p.id}" class="btn btn-sm btn-outline-warning"><i class="bi bi-pencil"></i></a>
+          <a href="eliminar.html?id=${p.id}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
         </div>
       </div>
-    `;
-
-    cont.appendChild(col);
-  });
+    </div>
+  `}).join("");
 }
-// -----------------------------------------------------------
-// DETALLE (detalle.html)
-// -----------------------------------------------------------
+
+// ==========================================
+// 2. DETALLE (detalle.html)
+// ==========================================
 
 function initDetalle() {
   const id = getParam("id");
   if (!id) return;
-
+  
   cargarDetalleProducto(id);
-
-  const btnImprimir = document.getElementById("btn-imprimir-qr");
-  if (btnImprimir) {
-    btnImprimir.addEventListener("click", imprimirQRProducto);
-  }
-
-  // --- Cambio de estado (botón + modal) ---
-  const btnCambiarEstado = document.getElementById("btnCambiarEstado");
-  const btnGuardarCambioEstado = document.getElementById("btnGuardarCambioEstado");
-  const modalEl = document.getElementById("modalCambiarEstado");
-  let modalCambio = null;
-
-  if (modalEl && window.bootstrap && window.bootstrap.Modal) {
-    modalCambio = new window.bootstrap.Modal(modalEl);
-  }
-
-  if (btnCambiarEstado && modalCambio) {
-    btnCambiarEstado.addEventListener("click", async (e) => {
-      e.preventDefault();
-      if (!productoActualDetalle) return;
-
-      const estadoActualTextoInput = document.getElementById("estadoActualTexto");
-      if (estadoActualTextoInput) {
-        const estadoTexto =
-          productoActualDetalle.estado_nombre ||
-          getNombreCampo(productoActualDetalle.estado, "—");
-        estadoActualTextoInput.value = estadoTexto;
-      }
-
-      await cargarEstadosParaCambioEstado();
-
-      const comentario = document.getElementById("comentarioEstado");
-      if (comentario) comentario.value = "";
-
-      const selectNuevoEstado = document.getElementById("nuevoEstado");
-      if (selectNuevoEstado) {
-        selectNuevoEstado.value = "";
-      }
-
-      modalCambio.show();
+  document.getElementById("btn-imprimir-qr")?.addEventListener("click", imprimirQRProducto);
+  
+  const btnGuardarEstado = document.getElementById("btnGuardarCambioEstado");
+  if (btnGuardarEstado) {
+    btnGuardarEstado.addEventListener("click", handleCambioEstado);
+    document.getElementById("btnCambiarEstado")?.addEventListener("click", () => {
+      document.getElementById("estadoActualTexto").value = getNombreCampo(productoActualDetalle?.estado);
+      cargarSelectGeneric("nuevoEstado", "estados/", false);
     });
   }
-
-  if (btnGuardarCambioEstado && modalCambio) {
-    btnGuardarCambioEstado.addEventListener("click", async () => {
-      if (!productoActualDetalle) return;
-
-      const selectNuevoEstado = document.getElementById("nuevoEstado");
-      const comentario = document.getElementById("comentarioEstado");
-      const estadoActualTextoInput = document.getElementById("estadoActualTexto");
-
-      if (!selectNuevoEstado) return;
-
-      const nuevoEstadoId = selectNuevoEstado.value;
-      const nuevoEstadoNombre =
-        selectNuevoEstado.options[selectNuevoEstado.selectedIndex]?.text || "";
-
-      if (!nuevoEstadoId) {
-        alert("Selecciona un nuevo estado.");
-        return;
-      }
-
-      const estadoActualTexto = estadoActualTextoInput?.value || "";
-      const comentarioExtra = comentario?.value || "";
-
-      try {
-        await guardarCambioEstadoProducto(
-          nuevoEstadoId,
-          nuevoEstadoNombre,
-          estadoActualTexto,
-          comentarioExtra
-        );
-        modalCambio.hide();
-      } catch (err) {
-        console.error("Error al cambiar estado:", err);
-        alert("No se pudo cambiar el estado del producto.");
-      }
-    });
-  }
-}
-
-// Helpers para leer nombres de campos que pueden venir como string u objeto
-function getNombreCampo(campo, fallback = "—") {
-  if (campo === null || campo === undefined) return fallback;
-  if (typeof campo === "object") {
-    if (campo.nombre) return campo.nombre;
-    if (campo.nombre_categoria) return campo.nombre_categoria;
-    if (campo.nombre_sucursal) return campo.nombre_sucursal;
-    if (campo.nombre_estado) return campo.nombre_estado;
-    // Si no hay nada más útil, devolvemos JSON serializado
-    return JSON.stringify(campo);
-  }
-  // Si es string o número directo
-  return campo;
-}
-
-function imprimirQRProducto() {
-  const qrImg = document.getElementById("qr-img");
-  if (!qrImg || !qrImg.src) {
-    alert("No hay código QR disponible para este producto.");
-    return;
-  }
-
-  const nombre = document.getElementById("nombreProd")?.textContent || "";
-  const codigo = document.getElementById("codigoProd")?.textContent || "";
-
-  // Abrimos una ventana nueva solo con el QR y datos básicos
-  const win = window.open("", "_blank", "width=400,height=600");
-  if (!win) {
-    alert("No se pudo abrir la ventana de impresión (revisa el bloqueador de pop-ups).");
-    return;
-  }
-
-  win.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>QR ${codigo}</title>
-      <style>
-        body {
-          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-          text-align: center;
-          margin: 0;
-          padding: 20px;
-        }
-        h1 {
-          font-size: 18px;
-          margin: 0 0 4px 0;
-        }
-        h2 {
-          font-size: 14px;
-          margin: 0 0 16px 0;
-        }
-        img {
-          max-width: 100%;
-          height: auto;
-        }
-      </style>
-    </head>
-    <body>
-      <h1>${nombre}</h1>
-      <h2>${codigo}</h2>
-      <img src="${qrImg.src}" alt="QR ${codigo}">
-      <script>
-        window.onload = function() {
-          window.print();
-        };
-      <\/script>
-    </body>
-    </html>
-  `);
-  win.document.close();
 }
 
 async function cargarDetalleProducto(id) {
   try {
-    const p = await API.get(`productos/${id}/`); // GET /api/api/productos/<id>/
-    productoActualDetalle = p; // guardamos para cambio de estado
+    const p = await API.get(`productos/${id}/`);
+    productoActualDetalle = p;
 
-    // ----------------------
-    //   MOSTRAR COMPONENTES
-    // ----------------------
-    const comp = p.componentes;   // viene anidado desde DRF
-
-    const lista = document.getElementById("componentesProd");
-    lista.innerHTML = ""; // limpiar
-
-    if (!comp) {
-        lista.innerHTML = `<li class="text-muted">Este producto no tiene componentes registrados.</li>`;
-    } else {
-        lista.innerHTML += `<li><strong>RAM:</strong> ${comp.ram_gb ?? "—"} GB</li>`;
-        lista.innerHTML += `<li><strong>Almacenamiento:</strong> ${comp.almacenamiento_gb ?? "—"} GB</li>`;
-
-        if (comp.cpu) {
-            lista.innerHTML += `<li><strong>CPU:</strong> ${comp.cpu.marca} ${comp.cpu.modelo}</li>`;
-        } else {
-            lista.innerHTML += `<li><strong>CPU:</strong> —</li>`;
-        }
-
-        if (comp.gpu) {
-            lista.innerHTML += `<li><strong>GPU:</strong> ${comp.gpu.marca} ${comp.gpu.modelo}</li>`;
-        } else {
-            lista.innerHTML += `<li><strong>GPU:</strong> —</li>`;
-        }
-    }
-
-    const elNombre = document.getElementById("nombreProd");
-    const elCodigo = document.getElementById("codigoProd");
-    const elCategoria = document.getElementById("categoriaProd");
-    const elSucursal = document.getElementById("sucursalProd");
-    const elEstado = document.getElementById("estadoProd");
-    const elPrecio = document.getElementById("precioProd");
-    const elFecha = document.getElementById("fechaProd");
-    const elGarantia = document.getElementById("garantiaProd");
-    const elFactura = document.getElementById("facturaProd");
-    const elComponentes = document.getElementById("componentesProd");
-    const elHistorial = document.getElementById("historialProd");
-    const elBtnEditar = document.getElementById("btnEditar");
-
-    // Nombre principal (modelo + nro_serie si existen, si no, cae en nro_serie)
-    const nombreVisible =
-      (p.modelo_nombre ? `${p.modelo_nombre} - ${p.nro_serie}` : null) ||
-      `${p.nro_serie}`;
-
-    if (elNombre) elNombre.textContent = nombreVisible;
-    if (elCodigo) elCodigo.textContent = p.nro_serie || "—";
-
-    const categoriaTexto =
-      p.categoria_nombre || getNombreCampo(p.categoria) || "—";
-    const sucursalTexto =
-      p.sucursal_nombre || getNombreCampo(p.sucursal) || "—";
-    const estadoTexto =
-      p.estado_nombre || getNombreCampo(p.estado) || "—";
-
-    if (elCategoria) elCategoria.textContent = categoriaTexto;
-    if (elSucursal) elSucursal.textContent = sucursalTexto;
-    if (elEstado) elEstado.textContent = estadoTexto;
-
-    if (elFactura) elFactura.textContent = p.documento_factura || "—";
-    if (elPrecio) elPrecio.textContent = p.documento_factura || "—";
-    if (elFecha) elFecha.textContent = p.fecha_compra || "—";
-    if (elGarantia) elGarantia.textContent =
-      (p.garantia_meses ?? "") !== "" ? `${p.garantia_meses} meses` : "—";
-
+    const setText = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
     
+    setText("nombreProd", nombreProducto(p));
+    setText("codigoProd", p.nro_serie);
+    setText("categoriaProd", getNombreCampo(p.categoria));
+    setText("sucursalProd", getNombreCampo(p.sucursal));
+    setText("estadoProd", getNombreCampo(p.estado));
+    setText("fechaProd", p.fecha_compra || "—");
+    setText("garantiaProd", p.garantia_meses ? `${p.garantia_meses} meses` : "—");
+    setText("precioProd", (p.valor_compra !== null) ? `$${p.valor_compra}` : "—");
 
-    // Historial de estados
-    if (elHistorial) {
-      elHistorial.innerHTML = "";
-      const historial =
-        p.historial_estados || p.historial || p.historialEstados || [];
-      if (Array.isArray(historial) && historial.length) {
-        historial.forEach(h => {
-          const li = document.createElement("li");
-          li.className = "list-group-item";
-          const estadoH = h.estado_nombre || getNombreCampo(h.estado) || "";
-          const fechaH = h.fecha_cambio || h.fecha || "";
-          li.innerHTML = `<strong>${estadoH}</strong> — ${fechaH}`;
-          elHistorial.appendChild(li);
-        });
-      } else {
-        elHistorial.innerHTML =
-          `<li class="list-group-item text-muted">Sin historial registrado.</li>`;
+    const listaComp = document.getElementById("componentesProd");
+    if(listaComp) {
+      const c = p.componentes;
+      if (!c) listaComp.innerHTML = `<li class="text-muted">Sin componentes registrados.</li>`;
+      else {
+        listaComp.innerHTML = `
+          <li><strong>CPU:</strong> ${c.cpu ? `${c.cpu.marca} ${c.cpu.modelo}` : "—"}</li>
+          <li><strong>GPU:</strong> ${c.gpu ? `${c.gpu.marca} ${c.gpu.modelo}` : "—"}</li>
+          <li><strong>RAM:</strong> ${c.ram_gb || "—"} GB</li>
+          <li><strong>Almacenamiento:</strong> ${c.almacenamiento_gb || "—"} GB</li>
+        `;
       }
     }
 
-    // Botón editar
-    if (elBtnEditar) {
-      elBtnEditar.href = `editar.html?id=${p.id}`;
-    }
-
-    // Mostrar QR generado por Django
-    const qrImg = document.getElementById("qr-img");
-    if (qrImg && p.codigo_qr) {
-      const qrUrl = p.codigo_qr.imagen_qr_url || p.codigo_qr.imagen_qr;
-
-      if (qrUrl) {
-        if (qrUrl.startsWith("/media/")) {
-          qrImg.src = `http://127.0.0.1:8000${qrUrl}`;
-        } else {
-          qrImg.src = qrUrl;
-        }
-        console.log("URL del QR:", qrImg.src);
-      } else {
-        console.log("No hay imagen QR disponible para este producto");
+    const elFactura = document.getElementById("facturaProd");
+    const btnDescarga = document.getElementById("btnDescargarFactura");
+    
+    const facturas = p.facturas || [];
+    if (facturas.length > 0) {
+      const f = facturas[0];
+      if (elFactura) elFactura.textContent = `Factura N° ${f.numero_factura || f.numero}`;
+      if (f.archivo_url || f.archivo) {
+        btnDescarga.href = f.archivo_url || f.archivo;
+        btnDescarga.classList.remove("d-none");
       }
+    } else {
+      if (elFactura) elFactura.textContent = "No asociada";
+      if (btnDescarga) btnDescarga.classList.add("d-none");
     }
 
-    if (p.nro_serie) {
-      cargarMovimientosProducto(p.nro_serie);
+    const imgQr = document.getElementById("qr-img");
+    if (imgQr && p.codigo_qr) {
+      imgQr.src = p.codigo_qr.imagen_qr_url || p.codigo_qr.imagen_qr;
     }
+
+    cargarMovimientosProducto(p.nro_serie);
 
   } catch (err) {
-    console.error("Error al cargar detalle:", err);
-    alert("No se pudo cargar el producto.");
+    console.error(err);
+    alert("Error al cargar detalle del producto.");
   }
 }
 
 async function cargarMovimientosProducto(sku) {
   const tbody = document.getElementById("historialMovimientosProd");
-  if (!tbody || !sku) return;
-
-  // Mensaje mientras carga
-  tbody.innerHTML = `
-    <tr>
-      <td colspan="4" class="text-muted">Cargando movimientos...</td>
-    </tr>
-  `;
-
+  if (!tbody) return;
   try {
     const res = await API.get(`movimientos/?sku=${encodeURIComponent(sku)}`);
-    const lista = Array.isArray(res) ? res : (res.results || []);
-
-    if (!lista.length) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="4" class="text-muted">
-            Sin movimientos registrados para este producto.
-          </td>
-        </tr>
-      `;
-      return;
-    }
-
-    tbody.innerHTML = "";
-
-    lista.forEach((m) => {
-      const fecha = m.fecha || m.fecha_movimiento || m.created_at || "";
-      const tipo = m.tipo || "";
-      const cantidad = m.cantidad ?? "";
-      const detalle = m.comentarios || m.referencia || "";
-
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${fecha}</td>
-        <td>${tipo}</td>
-        <td>${cantidad}</td>
-        <td>${detalle}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  } catch (err) {
-    console.error("Error al cargar movimientos del producto:", err);
-    tbody.innerHTML = `
+    const lista = Array.isArray(res) ? res : res.results;
+    
+    if(!lista.length) return tbody.innerHTML = `<tr><td colspan="4" class="text-muted">Sin movimientos.</td></tr>`;
+    
+    tbody.innerHTML = lista.map(m => `
       <tr>
-        <td colspan="4" class="text-danger">
-          No se pudieron cargar los movimientos.
-        </td>
+        <td>${m.fecha ? new Date(m.fecha).toLocaleDateString() : ""}</td>
+        <td>${m.tipo}</td>
+        <td>${m.cantidad}</td>
+        <td>${m.comentarios || m.referencia || "—"}</td>
       </tr>
-    `;
-  }
+    `).join("");
+  } catch (e) { tbody.innerHTML = `<tr><td colspan="4" class="text-danger">Error cargando historial.</td></tr>`; }
 }
 
-// Cargar estados en el select del modal de cambio de estado
-async function cargarEstadosParaCambioEstado() {
-  const select = document.getElementById("nuevoEstado");
-  if (!select) return;
+async function handleCambioEstado() {
+  if (!productoActualDetalle) return;
+  
+  const nuevoEstadoId = document.getElementById("nuevoEstado").value;
+  const comentario = document.getElementById("comentarioEstado").value;
+  
+  if (!nuevoEstadoId) return alert("Seleccione un estado.");
 
   try {
-    const res = await API.get("estados/");
-    const estados = Array.isArray(res) ? res : (res.results || []);
-
-    select.innerHTML = `<option value="">Seleccione estado...</option>`;
-    estados.forEach((e) => {
-      const opt = document.createElement("option");
-      opt.value = e.id;
-      opt.textContent = e.nombre;
-      select.appendChild(opt);
+    await API.put(`productos/${productoActualDetalle.id}/`, {
+      ...productoActualDetalle,
+      estado: parseInt(nuevoEstadoId),
+      proveedor: getId(productoActualDetalle.proveedor),
+      modelo: getId(productoActualDetalle.modelo),
+      categoria: getId(productoActualDetalle.categoria),
+      sucursal: getId(productoActualDetalle.sucursal),
+      facturas_ids: (productoActualDetalle.facturas || []).map(f => f.id)
     });
+
+    await API.post("movimientos/", {
+      tipo: "ajuste",
+      sku: productoActualDetalle.nro_serie,
+      cantidad: 1,
+      referencia: "Cambio de Estado Manual",
+      comentarios: comentario || "Cambio de estado desde detalle"
+    });
+
+    alert("Estado actualizado.");
+    location.reload();
   } catch (err) {
-    console.error("Error al cargar estados para cambio de estado:", err);
-    select.innerHTML = `<option value="">Error al cargar estados</option>`;
+    console.error(err);
+    alert("Error al actualizar estado.");
   }
 }
 
-// Actualizar producto + registrar movimiento de cambio de estado
-async function guardarCambioEstadoProducto(
-  nuevoEstadoId,
-  nuevoEstadoNombre,
-  estadoActualTexto,
-  comentarioAdicional
-) {
-  if (!productoActualDetalle) return;
-
-  // Helper para obtener el ID desde un campo que puede ser número u objeto
-  const proveedorId = getId(productoActualDetalle.proveedor);
-  const modeloId = getId(productoActualDetalle.modelo);
-  const categoriaId = getId(productoActualDetalle.categoria);
-  const sucursalId = productoActualDetalle.sucursal
-    ? getId(productoActualDetalle.sucursal)
-    : null;
-
-  const payload = {
-    nro_serie: productoActualDetalle.nro_serie,
-    proveedor: proveedorId ? parseInt(proveedorId) : null,
-    modelo: modeloId ? parseInt(modeloId) : null,
-    categoria: categoriaId ? parseInt(categoriaId) : null,
-    sucursal: sucursalId ? parseInt(sucursalId) : null,
-    estado: parseInt(nuevoEstadoId),
-    fecha_compra: productoActualDetalle.fecha_compra,
-    garantia_meses: productoActualDetalle.garantia_meses,
-    documento_factura: productoActualDetalle.documento_factura,
-  };
-
-  await API.put(`productos/${productoActualDetalle.id}/`, payload);
-
-  const baseTexto =
-    `Cambio de estado: ${estadoActualTexto || "(sin estado)"} → ${nuevoEstadoNombre}`;
-  const comentariosMovimiento = comentarioAdicional
-    ? `${baseTexto}. ${comentarioAdicional}`
-    : baseTexto;
-
-  const payloadMov = {
-    tipo: "ajuste",
-    sku: productoActualDetalle.nro_serie,
-    cantidad: 1,
-    proveedor: "",
-    referencia: baseTexto,
-    comentarios: comentariosMovimiento,
-  };
-
-  await API.post("movimientos/", payloadMov);
-
-  alert("Estado actualizado y movimiento registrado.");
-  await cargarDetalleProducto(productoActualDetalle.id);
+function imprimirQRProducto() {
+  const img = document.getElementById("qr-img");
+  if (!img || !img.src) return alert("No hay QR para imprimir.");
+  
+  const win = window.open("", "_blank", "width=400,height=500");
+  win.document.write(`
+    <html><body style="text-align:center; font-family:sans-serif; padding:20px;">
+      <h2>${document.getElementById("nombreProd").textContent}</h2>
+      <h3>${document.getElementById("codigoProd").textContent}</h3>
+      <img src="${img.src}" style="max-width:100%">
+      <script>window.onload=()=>{window.print();} //\x3c/script>
+    </body></html>
+  `);
 }
 
-// -----------------------------------------------------------
-// AGREGAR (agregar.html)
-// -----------------------------------------------------------
+// ==========================================
+// 3. AGREGAR (agregar.html)
+// ==========================================
 
 function initAgregar() {
   const form = document.getElementById("formProducto");
   if (!form) return;
 
-  // Carga de selects desde la API (incluye CPU/GPU ahora)
-  cargarSelectsProducto().then(() => {
-    // Si viene un código desde escáner QR
-    const codigoParam = getParam("codigo");
-    if (codigoParam) {
-      const inputCodigo = document.getElementById("codigo");
-      if (inputCodigo) inputCodigo.value = codigoParam;
-    }
+  // Cargar selects iniciales y configurar UI
+  cargarSelectsComunes().then(() => {
+    initFacturaUI();
+    initComponentesModales();
   });
 
-  // Init modals (si existen)
-  initComponentesModales();
+  // Listener para cascada Marca -> Modelo
+  document.getElementById("marca")?.addEventListener("change", cargarModelosPorMarca);
 
-  form.addEventListener("submit", onSubmitNuevoProducto);
+  // Submit en modo Creación (sin ID)
+  form.addEventListener("submit", (e) => onSubmitGuardarProducto(e, null));
 }
 
-async function onSubmitNuevoProducto(e) {
-  e.preventDefault();
 
-  const codigo = document.getElementById("codigo")?.value?.trim();
-  const proveedor = document.getElementById("proveedor")?.value;
-  const modelo = document.getElementById("modelo")?.value;
-  const categoria = document.getElementById("categoria")?.value;
-  const sucursal = document.getElementById("sucursal")?.value;
-  const estado = document.getElementById("estado")?.value;
-  const fechaCompra = document.getElementById("fechaCompra")?.value;
-  const mesesGarantia = document.getElementById("mesesGarantia")?.value;
-  const factura = document.getElementById("factura")?.value;
-
-  // Componentes
-  const cpu = document.getElementById("cpu")?.value;
-  const gpu = document.getElementById("gpu")?.value;
-  const ram = document.getElementById("ram")?.value;
-  const almacenamiento = document.getElementById("almacenamiento")?.value;
-
-  if (
-    !codigo ||
-    !proveedor ||
-    !modelo ||
-    !categoria ||
-    !estado ||
-    !fechaCompra ||
-    !mesesGarantia ||
-    !factura
-  ) {
-    alert("Completa todos los campos obligatorios del producto.");
-    return;
-  }
-
-  // Validar componentes (según tu HTML estaban marcados como required)
-  if (!cpu || !gpu || !ram || !almacenamiento) {
-    if (!confirm("No completaste todos los campos de componentes. ¿Deseas continuar sin componentes?")) {
-      return;
-    }
-  }
-
-  const payload = {
-    nro_serie: codigo,
-    proveedor: parseInt(proveedor),
-    modelo: parseInt(modelo),
-    categoria: parseInt(categoria),
-    sucursal: sucursal ? parseInt(sucursal) : null,
-    estado: parseInt(estado),
-    fecha_compra: fechaCompra,
-    garantia_meses: parseInt(mesesGarantia),
-    documento_factura: factura,
-    // Enviamos componentes como objeto anidado (backend ya lo maneja)
-    componentes: {
-      ram_gb: ram ? parseInt(ram) : null,
-      almacenamiento_gb: almacenamiento ? parseInt(almacenamiento) : null,
-      cpu_id: cpu ? parseInt(cpu) : null,
-      gpu_id: gpu ? parseInt(gpu) : null
-    }
-  };
-
-  try {
-    await API.post("productos/", payload);
-    alert("Producto creado correctamente.");
-    window.location.href = "listar.html";
-  } catch (err) {
-    console.error("Error al crear producto:", err);
-    // Intentar mostrar mensaje de error si viene del backend
-    const msg = err?.message || "No se pudo crear el producto. Revisa los datos.";
-    alert(msg);
-  }
-}
-
-// -----------------------------------------------------------
-// EDITAR (editar.html)
-// -----------------------------------------------------------
+// ==========================================
+// 4. EDITAR (editar.html)
+// ==========================================
 
 function initEditar() {
+  const id = getParam("id");
+  if (!id) return window.location.href = "listar.html";
+
   const form = document.getElementById("formEditarProducto");
   if (!form) return;
 
-  const id = getParam("id");
-  if (!id) {
-    alert("Falta el ID del producto");
-    window.location.href = "listar.html";
-    return;
-  }
+  // 1. Cargar selects comunes (esperar a que terminen)
+  cargarSelectsComunes().then(async () => {
+    // 2. Inicializar lógica de Facturas y Modales
+    initFacturaUI();
+    initComponentesModales();
 
-  cargarSelectsProducto().then(() => {
-    cargarDatosEdicion(id);
+    // 3. Listener Marca -> Modelo (para cambios manuales)
+    document.getElementById("marca")?.addEventListener("change", cargarModelosPorMarca);
+
+    // 4. Cargar datos del producto y llenar el form
+    await cargarDatosEdicion(id);
   });
 
-  // ✅ AGREGAR ESTA LÍNEA para inicializar los modales de CPU/GPU
-  initComponentesModales();
-
-  form.addEventListener("submit", e => onSubmitEditarProducto(e, id));
-}
-
-// Helper para obtener el ID desde un campo que puede ser número u objeto
-function getId(field) {
-  if (field === null || field === undefined) return "";
-  if (typeof field === "object") {
-    return field.id ?? "";
-  }
-  return field; // ya es un número o string
+  // Submit en modo Edición (con ID)
+  form.addEventListener("submit", (e) => onSubmitGuardarProducto(e, id));
 }
 
 async function cargarDatosEdicion(id) {
   try {
     const p = await API.get(`productos/${id}/`);
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
 
-    const cod = document.getElementById("codigo");
-    const proveedor = document.getElementById("proveedor");
-    const modelo = document.getElementById("modelo");
-    const categoria = document.getElementById("categoria");
-    const sucursal = document.getElementById("sucursal");
-    const estado = document.getElementById("estado");
-    const fechaCompra = document.getElementById("fechaCompra");
-    const mesesGarantia = document.getElementById("mesesGarantia");
-    const factura = document.getElementById("factura");
+    // Campos básicos
+    setVal("codigo", p.nro_serie);
+    setVal("proveedor", getId(p.proveedor));
+    setVal("categoria", getId(p.categoria));
+    setVal("sucursal", getId(p.sucursal));
+    setVal("estado", getId(p.estado));
+    setVal("fechaCompra", p.fecha_compra);
+    setVal("mesesGarantia", p.garantia_meses);
+    setVal("valorCompra", p.valor_compra);
 
-    if (cod) cod.value = p.nro_serie;
+    // --- MARCA Y MODELO (Cascada) ---
+    // El serializer de detalle devuelve el objeto modelo completo {id, nombre, marca: ID}
+    // OJO: Si tu ModelosSerializer anidado devuelve 'marca' como objeto, usa getId(p.modelo.marca)
+    const modeloInfo = p.modelo; 
+    if (modeloInfo) {
+       // Obtenemos el ID de la marca. 
+       // Si modeloInfo.marca es un objeto (por ModelosSerializer), usamos .id. Si es int, directo.
+       const marcaId = typeof modeloInfo.marca === 'object' ? modeloInfo.marca.id : modeloInfo.marca;
+       
+       if (marcaId) {
+         setVal("marca", marcaId);
+         // Importante: Esperar a que carguen los modelos de esa marca
+         await cargarModelosPorMarca(); 
+         // Ahora sí, seleccionar el modelo
+         setVal("modelo", modeloInfo.id);
+       }
+    }
 
-    if (proveedor) proveedor.value = getId(p.proveedor);
-    if (modelo) modelo.value = getId(p.modelo);
-    if (categoria) categoria.value = getId(p.categoria);
-    if (sucursal) sucursal.value = getId(p.sucursal);
-    if (estado) estado.value = getId(p.estado);
+    // --- FACTURAS ---
+    if (p.facturas && p.facturas.length > 0) {
+      // Seleccionar la primera
+      setVal("facturaSelect", p.facturas[0].id);
+    }
 
-    if (fechaCompra) fechaCompra.value = p.fecha_compra;
-    if (mesesGarantia) mesesGarantia.value = p.garantia_meses;
-    if (factura) factura.value = p.documento_factura;
-
-    // Si hay componentes en la respuesta, poblarlos en el form de edición
+    // --- COMPONENTES ---
     if (p.componentes) {
-      const c = p.componentes;
-      const cpuSelect = document.getElementById("cpu");
-      const gpuSelect = document.getElementById("gpu");
-      const ramInput = document.getElementById("ram");
-      const almInput = document.getElementById("almacenamiento");
-
-      if (cpuSelect && c.cpu) {
-        // si el option no existe todavía lo añadimos
-        if (!Array.from(cpuSelect.options).some(o => o.value == c.cpu.id)) {
-          cpuSelect.innerHTML += `<option value="${c.cpu.id}">${c.cpu.marca} ${c.cpu.modelo}</option>`;
-        }
-        cpuSelect.value = c.cpu.id;
-      }
-      if (gpuSelect && c.gpu) {
-        if (!Array.from(gpuSelect.options).some(o => o.value == c.gpu.id)) {
-          gpuSelect.innerHTML += `<option value="${c.gpu.id}">${c.gpu.marca} ${c.gpu.modelo}</option>`;
-        }
-        gpuSelect.value = c.gpu.id;
-      }
-      if (ramInput) ramInput.value = c.ram_gb ?? "";
-      if (almInput) almInput.value = c.almacenamiento_gb ?? "";
+      if (p.componentes.cpu) setVal("cpu", p.componentes.cpu.id);
+      if (p.componentes.gpu) setVal("gpu", p.componentes.gpu.id);
+      setVal("ram", p.componentes.ram_gb);
+      setVal("almacenamiento", p.componentes.almacenamiento_gb);
     }
 
   } catch (err) {
-    console.error("Error al cargar producto para editar:", err);
-    alert("No se pudo cargar el producto.");
+    console.error("Error al cargar datos de edición:", err);
+    alert("No se pudo cargar la información del producto.");
   }
 }
 
-async function onSubmitEditarProducto(e, id) {
-  e.preventDefault();
 
-  const codigo = document.getElementById("codigo")?.value?.trim();
-  const proveedor = document.getElementById("proveedor")?.value;
-  const modelo = document.getElementById("modelo")?.value;
-  const categoria = document.getElementById("categoria")?.value;
-  const sucursal = document.getElementById("sucursal")?.value;
-  const estado = document.getElementById("estado")?.value;
-  const fechaCompra = document.getElementById("fechaCompra")?.value;
-  const mesesGarantia = document.getElementById("mesesGarantia")?.value;
-  const factura = document.getElementById("factura")?.value;
-
-  // Componentes
-  const cpu = document.getElementById("cpu")?.value;
-  const gpu = document.getElementById("gpu")?.value;
-  const ram = document.getElementById("ram")?.value;
-  const almacenamiento = document.getElementById("almacenamiento")?.value;
-
-  if (
-    !codigo ||
-    !proveedor ||
-    !modelo ||
-    !categoria ||
-    !estado ||
-    !fechaCompra ||
-    !mesesGarantia ||
-    !factura
-  ) {
-    alert("Completa todos los campos obligatorios.");
-    return;
-  }
-
-  const payload = {
-    nro_serie: codigo,
-    proveedor: parseInt(proveedor),
-    modelo: parseInt(modelo),
-    categoria: parseInt(categoria),
-    sucursal: sucursal ? parseInt(sucursal) : null,
-    estado: parseInt(estado),
-    fecha_compra: fechaCompra,
-    garantia_meses: parseInt(mesesGarantia),
-    documento_factura: factura,
-    componentes: {
-      ram_gb: ram ? parseInt(ram) : null,
-      almacenamiento_gb: almacenamiento ? parseInt(almacenamiento) : null,
-      cpu_id: cpu ? parseInt(cpu) : null,
-      gpu_id: gpu ? parseInt(gpu) : null
-    }
-  };
-
-  try {
-    await API.put(`productos/${id}/`, payload);
-    alert("Producto actualizado correctamente.");
-    window.location.href = "listar.html";
-  } catch (err) {
-    console.error("Error al actualizar producto:", err);
-    alert("No se pudo actualizar el producto.");
-  }
-}
-
-// -----------------------------------------------------------
-// ELIMINAR (eliminar.html)
-// -----------------------------------------------------------
+// ==========================================
+// 5. ELIMINAR (eliminar.html)
+// ==========================================
 
 function initEliminar() {
-  function getNombreCampo(campo, fallback = "—") {
-    if (campo === null || campo === undefined) return fallback;
-    if (typeof campo === "object") {
-      if (campo.nombre) return campo.nombre;
-      if (campo.nombre_categoria) return campo.nombre_categoria;
-      if (campo.nombre_sucursal) return campo.nombre_sucursal;
-      if (campo.nombre_estado) return campo.nombre_estado;
-      return JSON.stringify(campo);
-    }
-    return campo; // string o número
-  }
-
-  const id = getParam("id");
-  if (!id) {
-    alert("Falta el ID del producto");
-    window.location.href = "listar.html";
-    return;
-  }
-
-  const form = document.getElementById("formEliminarProducto");
-  const infoDiv = document.getElementById("producto-eliminar-info");
-
-  // Mostrar resumen del producto
-  API.get(`productos/${id}/`)
-    .then(p => {
-      if (infoDiv) {
-        const categoriaTexto =
-          p.categoria_nombre || getNombreCampo(p.categoria) || "—";
-        const sucursalTexto =
-          p.sucursal_nombre || getNombreCampo(p.sucursal) || "—";
-        const estadoTexto =
-          p.estado_nombre || getNombreCampo(p.estado) || "—";
-
-        infoDiv.innerHTML = `
-          <p><strong>${nombreProducto(p)}</strong></p>
-          <p>Categoría: ${categoriaTexto}</p>
-          <p>Sucursal: ${sucursalTexto}</p>
-          <p>Estado: ${estadoTexto}</p>
+    const id = getParam("id");
+    if(!id) return;
+    
+    API.get(`productos/${id}/`).then(p => {
+        document.getElementById("producto-eliminar-info").innerHTML = `
+            <p><strong>${nombreProducto(p)}</strong></p>
+            <p class="text-muted">Serie: ${p.nro_serie}</p>
         `;
-      }
-    })
-    .catch(err => {
-      console.error("Error al cargar producto a eliminar:", err);
-      if (infoDiv) {
-        infoDiv.textContent = "No se pudo cargar el producto.";
-      }
     });
 
-  if (form) {
-    form.addEventListener("submit", async e => {
-      e.preventDefault();
-      if (!confirm("¿Seguro que quieres eliminar este producto?")) return;
-
-      try {
-        await API.delete(`productos/${id}/`);
-        alert("Producto eliminado correctamente.");
-        window.location.href = "listar.html";
-      } catch (err) {
-        console.error("Error al eliminar producto:", err);
-        alert("No se pudo eliminar el producto.");
-      }
+    document.getElementById("formEliminarProducto")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if(confirm("¿Seguro que deseas eliminar permanentemente?")) {
+            try {
+                await API.delete(`productos/${id}/`);
+                alert("Eliminado.");
+                window.location.href = "listar.html";
+            } catch(err) {
+                alert("Error al eliminar.");
+            }
+        }
     });
-  }
 }
 
-// -----------------------------------------------------------
-// Carga de selects (proveedor, modelo, categoria, sucursal, estado)
-// para agregar/editar (ahora incluye cpu/gpu)
-// -----------------------------------------------------------
 
-async function cargarSelectsProducto() {
+// ==========================================
+// HELPERS COMPARTIDOS (LOGICA AGREGAR/EDITAR)
+// ==========================================
+
+async function cargarSelectsComunes() {
+  // Carga paralela de selects independientes
+  await Promise.all([
+    cargarSelectGeneric("proveedor", "proveedores/"),
+    cargarSelectGeneric("categoria", "categorias/"),
+    cargarSelectGeneric("estado", "estados/"),
+    cargarSelectGeneric("sucursal", "sucursales/"),
+    cargarSelectGeneric("cpu", "cpu/"),
+    cargarSelectGeneric("gpu", "gpu/"),
+    cargarSelectGeneric("marca", "marcas/"),
+    // El select de proveedor dentro de "Nueva Factura"
+    cargarSelectGeneric("facturaProveedor", "proveedores/") 
+  ]);
+}
+
+async function cargarSelectGeneric(id, endpoint, allowEmpty=true) {
+  const el = document.getElementById(id);
+  if (!el) return;
   try {
-    await Promise.all([
-      cargarSelect("proveedor", "proveedores/"),
-      cargarSelect("modelo", "modelos/"),
-      cargarSelect("categoria", "categorias/"),
-      cargarSelect("sucursal", "sucursales/", true), // opcional
-      cargarSelect("estado", "estados/"),
-      cargarSelectCPU(), // cpu
-      cargarSelectGPU(), // gpu
-    ]);
+    const res = await API.get(endpoint);
+    const data = Array.isArray(res) ? res : res.results;
+    
+    const labelFn = (item) => {
+        if(item.marca && item.modelo) return `${item.marca} ${item.modelo}`; 
+        if(item.nombre) return item.nombre;
+        return "Item " + item.id;
+    };
+
+    // Mantenemos opción vacía o __new__ si ya existe
+    const hasNew = el.querySelector('option[value="__new__"]');
+    el.innerHTML = allowEmpty ? `<option value="">Seleccione...</option>` : "";
+    if (hasNew) el.innerHTML += `<option value="__new__">➕ Agregar nueva factura</option>`;
+
+    data.forEach(i => el.innerHTML += `<option value="${i.id}">${labelFn(i)}</option>`);
   } catch (err) {
-    console.error("Error al cargar selects de producto:", err);
-    alert("No se pudieron cargar los datos de soporte (sucursales, categorías, etc.).");
+    console.warn(`Fallo al cargar ${endpoint}`, err);
   }
 }
 
-async function cargarSelect(elementId, endpoint, allowEmpty = false) {
-  const select = document.getElementById(elementId);
-  if (!select) return;
+async function cargarModelosPorMarca() {
+    const marcaId = document.getElementById("marca").value;
+    const modeloSel = document.getElementById("modelo");
+    if(!modeloSel) return;
+    
+    modeloSel.innerHTML = '<option value="">Cargando...</option>';
+    if(!marcaId) return modeloSel.innerHTML = '<option value="">Selecciona marca primero...</option>';
 
-  let data = await API.get(endpoint); // p.ej. "categorias/"
-
-  data = Array.isArray(data) ? data : (data.results || []);
-
-  select.innerHTML = allowEmpty
-    ? `<option value="">(Ninguna)</option>`
-    : `<option value="">Seleccione...</option>`;
-
-  data.forEach(item => {
-    select.innerHTML += `<option value="${item.id}">${item.nombre}</option>`;
-  });
+    try {
+        const res = await API.get("modelos/");
+        const todosModelos = (Array.isArray(res) ? res : res.results);
+        
+        // Filtrado en cliente (simple)
+        const modelosFiltrados = todosModelos.filter(m => String(m.marca) === String(marcaId));
+        
+        modeloSel.innerHTML = `<option value="">Seleccione modelo...</option>` + 
+            modelosFiltrados.map(m => `<option value="${m.id}">${m.nombre}</option>`).join("");
+    } catch(e) {
+        console.error(e);
+        modeloSel.innerHTML = '<option value="">Error cargando modelos</option>';
+    }
 }
 
-// -----------------------------------------------------------
-// CPU / GPU helpers (cargar selects y crear desde modal)
-// -----------------------------------------------------------
+async function onSubmitGuardarProducto(e, idEdicion = null) {
+  e.preventDefault();
+  
+  const getVal = (id) => document.getElementById(id)?.value || null;
+  const facturaSelect = document.getElementById("facturaSelect");
 
-async function cargarSelectCPU() {
-  const select = document.getElementById("cpu");
-  if (!select) return;
+  // 1. Manejo de Factura (Nueva o Existente)
+  let facturas_ids = [];
+  if (facturaSelect && facturaSelect.value === "__new__") {
+    try {
+      const nuevaFactura = await crearFacturaDesdeUI();
+      facturas_ids.push(nuevaFactura.id);
+    } catch (err) {
+      return alert("Error creando la factura: " + err.message);
+    }
+  } else if (facturaSelect && facturaSelect.value) {
+    facturas_ids.push(parseInt(facturaSelect.value));
+  }
 
+  // 2. Construir Payload
+  const payload = {
+    nro_serie: getVal("codigo"),
+    proveedor: getVal("proveedor"),
+    modelo: getVal("modelo"),
+    categoria: getVal("categoria"),
+    sucursal: getVal("sucursal"),
+    estado: getVal("estado"),
+    fecha_compra: getVal("fechaCompra"),
+    garantia_meses: getVal("mesesGarantia"),
+    valor_compra: getVal("valorCompra"),
+    facturas_ids: facturas_ids,
+    componentes: {}
+  };
+
+  // Componentes (IDs)
+  const cpu = getVal("cpu");
+  const gpu = getVal("gpu");
+  const ram = getVal("ram");
+  const alm = getVal("almacenamiento");
+
+  if (cpu) payload.componentes.cpu_id = parseInt(cpu);
+  if (gpu) payload.componentes.gpu_id = parseInt(gpu);
+  if (ram) payload.componentes.ram_gb = parseInt(ram);
+  if (alm) payload.componentes.almacenamiento_gb = parseInt(alm);
+
+  if (Object.keys(payload.componentes).length === 0) delete payload.componentes;
+
+  // 3. Enviar (POST o PUT)
   try {
-    let data = await API.get("cpu/");
-    data = Array.isArray(data) ? data : (data.results || []);
-    select.innerHTML = `<option value="">Seleccione CPU...</option>`;
-    data.forEach(item => {
-      select.innerHTML += `<option value="${item.id}">${item.marca} ${item.modelo}</option>`;
-    });
+    if (idEdicion) {
+      // Editar
+      await API.put(`productos/${idEdicion}/`, payload);
+      alert("Producto actualizado exitosamente.");
+    } else {
+      // Crear
+      await API.post("productos/", payload);
+      alert("Producto guardado exitosamente.");
+    }
+    window.location.href = "listar.html";
   } catch (err) {
-    console.error("Error al cargar CPUs:", err);
-    select.innerHTML = `<option value="">Error al cargar CPUs</option>`;
+    console.error("Error guardando producto:", err);
+    alert("Error al guardar. Revise los datos obligatorios.");
   }
 }
 
-async function cargarSelectGPU() {
-  const select = document.getElementById("gpu");
-  if (!select) return;
 
-  try {
-    let data = await API.get("gpu/");
-    data = Array.isArray(data) ? data : (data.results || []);
-    select.innerHTML = `<option value="">Seleccione GPU...</option>`;
-    data.forEach(item => {
-      select.innerHTML += `<option value="${item.id}">${item.marca} ${item.modelo}</option>`;
-    });
-  } catch (err) {
-    console.error("Error al cargar GPUs:", err);
-    select.innerHTML = `<option value="">Error al cargar GPUs</option>`;
-  }
+// ==========================================
+// LOGICA DE FACTURAS Y MODALES
+// ==========================================
+
+async function cargarFacturasEnSelect() {
+    const sel = document.getElementById("facturaSelect");
+    if(!sel) return;
+    
+    // Preservar opción __new__
+    const hasNew = sel.querySelector('option[value="__new__"]');
+    
+    try {
+        const res = await API.get("facturas/");
+        const lista = Array.isArray(res) ? res : res.results;
+        
+        sel.innerHTML = `<option value="">Seleccione factura...</option>`;
+        if(hasNew) sel.innerHTML += `<option value="__new__">➕ Agregar nueva factura</option>`;
+        
+        lista.forEach(f => {
+            sel.innerHTML += `<option value="${f.id}">${f.numero_factura} (${f.proveedor ? f.proveedor.nombre : 'Sin Prov.'})</option>`;
+        });
+    } catch(e) { console.error(e); }
 }
 
-// -----------------------------------------------------------
-// Modales de componentes (crear CPU/GPU desde el formulario)
-// -----------------------------------------------------------
+function initFacturaUI() {
+    const sel = document.getElementById("facturaSelect");
+    const box = document.getElementById("facturaNuevaBox");
+    const provProd = document.getElementById("proveedor");
+    const provFact = document.getElementById("facturaProveedor");
+    
+    // Cargar opciones iniciales
+    if(sel) cargarFacturasEnSelect();
+
+    if(sel && box) {
+        sel.addEventListener("change", () => {
+            const isNew = sel.value === "__new__";
+            box.classList.toggle("d-none", !isNew);
+            
+            // Si elige nueva factura, intentar copiar el proveedor seleccionado en el producto
+            if(isNew && provProd && provFact) {
+                if (provProd.value) provFact.value = provProd.value; 
+            }
+        });
+    }
+
+    // Botón "Guardar Factura Independiente"
+    document.getElementById("btnGuardarFactura")?.addEventListener("click", async () => {
+        try {
+            const nueva = await crearFacturaDesdeUI();
+            alert("Factura creada.");
+            await cargarFacturasEnSelect(); // recargar lista
+            sel.value = nueva.id; // autoseleccionar
+            box.classList.add("d-none"); // ocultar formulario
+        } catch(e) {
+            alert(e.message);
+        }
+    });
+}
+
+async function crearFacturaDesdeUI(fileId="facturaArchivo", dateId="facturaFecha", amountId="facturaMonto", numId="facturaNumero") {
+    const num = document.getElementById(numId)?.value;
+    const fecha = document.getElementById(dateId)?.value;
+    const monto = document.getElementById(amountId)?.value;
+    const file = document.getElementById(fileId)?.files[0];
+    
+    let provId = document.getElementById("facturaProveedor")?.value;
+    // Fallback al proveedor del producto si no se seleccionó uno específico
+    if(!provId) provId = document.getElementById("proveedor")?.value;
+
+    if(!num || !fecha || !monto || !provId) throw new Error("Faltan datos obligatorios para la factura (Número, Fecha, Monto, Proveedor).");
+    if(!file) throw new Error("Debes adjuntar el archivo de la factura.");
+
+    const fd = new FormData();
+    fd.append("numero_factura", num);
+    fd.append("fecha_emision", fecha);
+    fd.append("monto_total", monto);
+    fd.append("proveedor", provId);
+    fd.append("archivo", file);
+    
+    return await API.post("facturas/", fd);
+}
 
 function initComponentesModales() {
-  // CPU modal
-  const btnNuevaCPU = document.getElementById("btnNuevaCPU");
-  const modalCPUEl = document.getElementById("modalNuevaCPU");
-  const btnGuardarCPU = document.getElementById("btnGuardarCPU");
+    // Configura los modales para limpiar campos al abrir y guardar al hacer click
 
-  // GPU modal
-  const btnNuevaGPU = document.getElementById("btnNuevaGPU");
-  const modalGPUEl = document.getElementById("modalNuevaGPU");
-  const btnGuardarGPU = document.getElementById("btnGuardarGPU");
-
-  let modalCPU = null;
-  let modalGPU = null;
-
-  if (modalCPUEl && window.bootstrap && window.bootstrap.Modal) {
-    modalCPU = new window.bootstrap.Modal(modalCPUEl);
-  }
-  if (modalGPUEl && window.bootstrap && window.bootstrap.Modal) {
-    modalGPU = new window.bootstrap.Modal(modalGPUEl);
-  }
-
-  if (btnNuevaCPU && modalCPU) {
-    btnNuevaCPU.addEventListener("click", () => {
-      // limpiar formulario
-      const f = document.getElementById("formNuevaCPU");
-      if (f) f.reset();
-      modalCPU.show();
+    // MARCA
+    document.getElementById("btnGuardarMarca")?.addEventListener("click", async () => {
+        const nombre = document.getElementById("nuevaMarcaNombre").value;
+        if(!nombre) return alert("Escriba el nombre");
+        try {
+            const res = await API.post("marcas/", { nombre });
+            // Recargar select de marcas
+            await cargarSelectGeneric("marca", "marcas/");
+            document.getElementById("marca").value = res.id;
+            
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById("modalNuevaMarca"));
+            modal.hide();
+            
+            // Disparar evento change para cargar modelos (vacío)
+            document.getElementById("marca").dispatchEvent(new Event('change'));
+        } catch(e) { alert("Error al guardar Marca"); }
     });
-  }
 
-  if (btnNuevaGPU && modalGPU) {
-    btnNuevaGPU.addEventListener("click", () => {
-      const f = document.getElementById("formNuevaGPU");
-      if (f) f.reset();
-      modalGPU.show();
+    // MODELO
+    // Al abrir modal modelo, cargar marcas en su select interno
+    const modalModeloEl = document.getElementById("modalNuevoModelo");
+    if (modalModeloEl) {
+        modalModeloEl.addEventListener('show.bs.modal', () => {
+            cargarSelectGeneric("nuevoModeloMarca", "marcas/", false);
+            // Pre-seleccionar la marca actual del formulario principal si existe
+            const marcaActual = document.getElementById("marca").value;
+            if(marcaActual) setTimeout(() => document.getElementById("nuevoModeloMarca").value = marcaActual, 500);
+        });
+    }
+
+    document.getElementById("btnGuardarModelo")?.addEventListener("click", async () => {
+        const marca = document.getElementById("nuevoModeloMarca").value;
+        const nombre = document.getElementById("nuevoModeloNombre").value;
+        if(!marca || !nombre) return alert("Faltan datos");
+        
+        try {
+            const res = await API.post("modelos/", { marca, nombre });
+            
+            // Si la marca del nuevo modelo coincide con la seleccionada en el form principal, recargar
+            const marcaPrincipal = document.getElementById("marca").value;
+            if (String(marcaPrincipal) === String(marca)) {
+                await cargarModelosPorMarca();
+                document.getElementById("modelo").value = res.id;
+            } else {
+                alert("Modelo creado (cambia la marca para verlo).");
+            }
+            
+            const modal = bootstrap.Modal.getInstance(document.getElementById("modalNuevoModelo"));
+            modal.hide();
+        } catch(e) { alert("Error al guardar Modelo"); }
     });
-  }
 
-  if (btnGuardarCPU) {
-    btnGuardarCPU.addEventListener("click", async () => {
-      try {
-        // leer inputs del modal
-        const cpuNombre = document.getElementById("cpuNombre")?.value?.trim();
-        const cpuGeneracion = document.getElementById("cpuGeneracion")?.value?.trim();
-        const cpuVelocidad = document.getElementById("cpuVelocidad")?.value?.trim();
+    // CPU y GPU
+    const handleCompSave = async (type, payload, modalId) => {
+         try {
+            const res = await API.post(type + "/", payload);
+            await cargarSelectGeneric(type, type + "/");
+            document.getElementById(type).value = res.id;
+            
+            const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
+            modal.hide();
+         } catch(e) { alert("Error al guardar componente"); }
+    };
 
-        if (!cpuNombre) {
-          alert("Ingresa al menos la marca/nombre de la CPU.");
-          return;
-        }
-
-        // mapear a {marca, modelo} según tu modelo backend
-        const payload = {
-          marca: cpuNombre,
-          modelo: `${cpuGeneracion || ""} ${cpuVelocidad ? cpuVelocidad + "GHz" : ""}`.trim()
-        };
-
-        const nuevo = await API.post("cpu/", payload);
-
-        // cerrar modal y refrescar select
-        modalCPU.hide();
-        await cargarSelectCPU();
-
-        // seleccionar la nueva opción si viene el id
-        if (nuevo && nuevo.id) {
-          const selectCPU = document.getElementById("cpu");
-          if (selectCPU) selectCPU.value = nuevo.id;
-        }
-
-        alert("CPU creada correctamente.");
-      } catch (err) {
-        console.error("Error al crear CPU:", err);
-        alert("No se pudo crear la CPU.");
-      }
+    document.getElementById("btnGuardarCPU")?.addEventListener("click", () => {
+        const marca = document.getElementById("cpuNombre").value; 
+        const modelo = document.getElementById("cpuGeneracion").value; // Reutilizando IDs del html original
+        if(!marca) return alert("Falta marca");
+        handleCompSave("cpu", { marca, modelo: modelo || "Genérica" }, "modalNuevaCPU");
     });
-  }
 
-  if (btnGuardarGPU) {
-    btnGuardarGPU.addEventListener("click", async () => {
-      try {
-        const gpuNombre = document.getElementById("gpuNombre")?.value?.trim();
-        const gpuMemoria = document.getElementById("gpuMemoria")?.value?.trim();
-        const gpuTipo = document.getElementById("gpuTipo")?.value?.trim();
-
-        if (!gpuNombre) {
-          alert("Ingresa al menos la marca/nombre de la GPU.");
-          return;
-        }
-
-        const payload = {
-          marca: gpuNombre,
-          modelo: `${gpuTipo || ""} ${gpuMemoria ? gpuMemoria + "GB" : ""}`.trim()
-        };
-
-        const nuevo = await API.post("gpu/", payload);
-
-        modalGPU.hide();
-        await cargarSelectGPU();
-
-        if (nuevo && nuevo.id) {
-          const selectGPU = document.getElementById("gpu");
-          if (selectGPU) selectGPU.value = nuevo.id;
-        }
-
-        alert("GPU creada correctamente.");
-      } catch (err) {
-        console.error("Error al crear GPU:", err);
-        alert("No se pudo crear la GPU.");
-      }
+    document.getElementById("btnGuardarGPU")?.addEventListener("click", () => {
+        const marca = document.getElementById("gpuNombre").value;
+        const modelo = document.getElementById("gpuMemoria").value;
+        if(!marca) return alert("Falta marca");
+        handleCompSave("gpu", { marca, modelo: modelo || "Genérica" }, "modalNuevaGPU");
     });
-  }
 }
-
-// -----------------------------------------------------------
-// Helpers reutilizables
-// -----------------------------------------------------------
-
-// (Ya definido antes: getId)
-
-// -----------------------------------------------------------
-// FIN
-// -----------------------------------------------------------
-
-export {
-  // exporto si quieres reutilizar funciones en otros módulos
-};

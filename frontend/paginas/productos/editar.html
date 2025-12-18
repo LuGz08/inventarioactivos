@@ -1,253 +1,74 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Editar Producto - Inventario Coyahue</title>
-
-  <!-- Bootstrap -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-
-  <!-- Estilos -->
-  <link rel="stylesheet" href="/src/css/styles.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/css/styles.css" />
 </head>
-
 <body>
-  <!-- TOPBAR -->
   <nav class="topbar" id="app-topbar"></nav>
-
   <div class="app-container">
-    <!-- SIDEBAR -->
     <aside class="sidebar" id="app-sidebar"></aside>
-
-    <!-- CONTENIDO -->
     <main class="main-content">
       <div class="container-fluid">
-
-        <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h2 class="fw-bold text-primary mb-0">Editar Producto</h2>
-          <a href="listar.html" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left"></i> Volver
-          </a>
+          <div>
+            <h2 class="fw-bold text-primary mb-0"><i class="bi bi-pencil-square me-2"></i>Editar Producto</h2>
+            <p class="text-muted mb-0">Modifica los datos del equipo seleccionado.</p>
+          </div>
+          <a href="listar.html" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Volver</a>
         </div>
 
-        <div class="row g-4">
+        <div class="card p-4 shadow-sm border-0">
+          <form id="formEditarProducto">
+            <div class="row g-3">
+              <div class="col-md-4"><label class="form-label">Código / N° Serie *</label><input type="text" id="codigo" class="form-control" required /></div>
+              <div class="col-md-4"><label class="form-label">Proveedor *</label><select id="proveedor" class="form-select" required><option value="">Cargando...</option></select></div>
+              <div class="col-md-4"><label class="form-label">Categoría *</label><select id="categoria" class="form-select" required><option value="">Cargando...</option></select></div>
+              <div class="col-md-6"><label class="form-label">Marca *</label><select id="marca" class="form-select" required><option value="">Cargando...</option></select></div>
+              <div class="col-md-6"><label class="form-label">Modelo *</label><select id="modelo" class="form-select" required><option value="">Sel. marca...</option></select></div>
+              <div class="col-md-4"><label class="form-label">Estado *</label><select id="estado" class="form-select" required><option value="">Cargando...</option></select></div>
+              <div class="col-md-4"><label class="form-label">Sucursal</label><select id="sucursal" class="form-select"><option value="">Cargando...</option></select></div>
 
-          <!-- FORMULARIO -->
-          <div class="col-lg-8">
-            <div class="card p-4">
-              <form id="formEditarProducto">
-
-                <!-- DATOS BÁSICOS -->
-                <h5 class="fw-bold text-primary mb-3">
-                  <i class="bi bi-box-seam"></i> Datos básicos
-                </h5>
-
-                <div class="row g-3">
-
-                  <div class="col-md-4">
-                    <label class="form-label">Nro. de serie *</label>
-                    <input type="text" class="form-control" id="codigo" required>
-                  </div>
-
-                  <div class="col-md-4">
-                    <label class="form-label">Proveedor *</label>
-                    <select id="proveedor" class="form-select" required>
-                      <option value="">Cargando...</option>
-                    </select>
-                  </div>
-
-                  <div class="col-md-4">
-                    <label class="form-label">Modelo *</label>
-                    <select id="modelo" class="form-select" required>
-                      <option value="">Cargando...</option>
-                    </select>
-                  </div>
-
-                  <div class="col-md-4">
-                    <label class="form-label">Categoría *</label>
-                    <select id="categoria" class="form-select" required>
-                      <option value="">Cargando...</option>
-                    </select>
-                  </div>
-
-                  <div class="col-md-4">
-                    <label class="form-label">Sucursal (opcional)</label>
-                    <select id="sucursal" class="form-select">
-                      <option value="">(Ninguna)</option>
-                    </select>
-                  </div>
-
-                  <div class="col-md-4">
-                    <label class="form-label">Estado *</label>
-                    <select id="estado" class="form-select" required>
-                      <option value="">Cargando...</option>
-                    </select>
-                  </div>
-
-                  <div class="col-md-4">
-                    <label class="form-label">Fecha de compra *</label>
-                    <input type="date" class="form-control" id="fechaCompra" required>
-                  </div>
-
-                  <div class="col-md-4">
-                    <label class="form-label">Meses de garantía *</label>
-                    <input type="number" class="form-control" id="mesesGarantia" min="0" required>
-                  </div>
-
-                  <div class="col-md-4">
-                    <label class="form-label">Factura / Documento *</label>
-                    <input type="text" class="form-control" id="factura" required>
-                  </div>
-
-                </div>
-
-                <!-- COMPONENTES -->
-                <hr class="my-4">
-                <h5 class="fw-bold text-primary mb-3">
-                  <i class="bi bi-cpu"></i> Componentes
-                </h5>
-
-                <div class="row g-3">
-
-                  <!-- CPU -->
-                  <div class="col-md-6">
-                    <label class="form-label">CPU</label>
-                    <div class="input-group">
-                      <select id="cpu" class="form-select">
-                        <option value="">Seleccione CPU...</option>
-                      </select>
-                      <button type="button" class="btn btn-outline-primary" id="btnNuevaCPU">
-                        <i class="bi bi-plus-circle"></i>
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- GPU -->
-                  <div class="col-md-6">
-                    <label class="form-label">GPU</label>
-                    <div class="input-group">
-                      <select id="gpu" class="form-select">
-                        <option value="">Seleccione GPU...</option>
-                      </select>
-                      <button type="button" class="btn btn-outline-primary" id="btnNuevaGPU">
-                        <i class="bi bi-plus-circle"></i>
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- RAM -->
-                  <div class="col-md-6">
-                    <label class="form-label">RAM (GB)</label>
-                    <input type="number" class="form-control" id="ram" placeholder="8, 16, 32..." min="1">
-                  </div>
-
-                  <!-- ALMACENAMIENTO -->
-                  <div class="col-md-6">
-                    <label class="form-label">Almacenamiento (GB)</label>
-                    <input type="number" class="form-control" id="almacenamiento" placeholder="256, 512, 1024..." min="1">
-                  </div>
-
-                </div>
-
-                <!-- BOTONES -->
-                <div class="mt-4 d-flex justify-content-end gap-2">
-                  <a href="listar.html" class="btn btn-outline-secondary">Cancelar</a>
-                  <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-check-circle"></i> Actualizar
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          <!-- PREVIEW: IMAGEN + QR -->
-          <div class="col-lg-4">
-            <div class="card p-4 text-center">
-              <h5 class="mb-3 fw-bold">Vista previa</h5>
-
-              <img id="imgPreviewEditar"
-                   src="/src/img/no-image.png"
-                   class="img-fluid rounded border mb-3"
-                   style="max-height:220px; object-fit:contain; border:2px solid #ddd;">
-
-              <div id="qrPreviewEditar" class="my-3 text-muted small">
-                El QR actual se muestra en la ficha de detalle.
+              <div class="col-md-4">
+                <label class="form-label">Fecha de compra *</label>
+                <input type="date" id="fechaCompra" class="form-control" required />
               </div>
 
-            </div>
-          </div>
+              <div class="col-md-4">
+                <label class="form-label">Garantía (meses) *</label>
+                <input type="number" min="0" id="mesesGarantia" class="form-control" required />
+              </div>
 
+              <div class="col-md-4">
+                <label class="form-label text-muted">Vencimiento (Calc)</label>
+                <input type="text" id="fechaVencimientoCalc" class="form-control bg-light" readonly placeholder="Se calcula al guardar">
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label">Valor de compra</label>
+                <input type="number" min="0" step="0.01" id="valorCompra" class="form-control" />
+              </div>
+
+              <div class="col-md-12">
+                 <div class="card border-info"><div class="card-header bg-info text-white fw-bold">Facturación</div><div class="card-body"><select id="facturaSelect" class="form-select"><option value="">Seleccione...</option></select></div></div>
+              </div>
+              <div class="col-12 mt-4 d-flex justify-content-end gap-2">
+                <a href="listar.html" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+              </div>
+            </div>
+          </form>
         </div>
+        <div class="footer"><p>© 2025 Grupo Coyahue</p></div>
       </div>
     </main>
   </div>
-
-  <!-- MODAL: NUEVA CPU -->
-  <div class="modal fade" id="modalNuevaCPU" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title"><i class="bi bi-cpu"></i> Nueva CPU</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <form id="formNuevaCPU">
-            <div class="mb-3">
-              <label class="form-label">Marca</label>
-              <input type="text" id="cpuNombre" class="form-control" required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Modelo</label>
-              <input type="text" id="cpuGeneracion" class="form-control" required>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="button" class="btn btn-primary" id="btnGuardarCPU">
-            <i class="bi bi-check-circle"></i> Guardar
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL: NUEVA GPU -->
-  <div class="modal fade" id="modalNuevaGPU" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title"><i class="bi bi-gpu-card"></i> Nueva GPU</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <form id="formNuevaGPU">
-            <div class="mb-3">
-              <label class="form-label">Marca</label>
-              <input type="text" id="gpuNombre" class="form-control" required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Modelo</label>
-              <input type="text" id="gpuTipo" class="form-control" required>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="button" class="btn btn-primary" id="btnGuardarGPU">
-            <i class="bi bi-check-circle"></i> Guardar
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-<!-- SCRIPTS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/src/js/main.js"></script>
-<script type="module" src="/src/js/productos.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/src/js/main.js"></script>
+  <script type="module" src="/src/js/productos.js"></script>
 </body>
 </html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Facturas - Inventario</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="/src/css/styles.css"/>
+</head>
+
+<body>
+  <nav class="topbar" id="app-topbar"></nav>
+
+  <div class="app-container">
+    <aside class="sidebar" id="app-sidebar"></aside>
+
+    <main class="main-content">
+      <div class="container-fluid">
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h2 class="fw-bold text-primary mb-0"><i class="bi bi-receipt me-2"></i>Facturas</h2>
+            <p class="text-muted mb-0">Sube facturas y asígnalas a uno o más productos.</p>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <!-- Formulario -->
+          <div class="col-lg-5">
+            <div class="card shadow-sm border-0">
+              <div class="card-header bg-white fw-bold">
+                <i class="bi bi-upload me-2"></i>Subir factura
+              </div>
+              <div class="card-body">
+                <form id="formFactura" class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">N° factura</label>
+                    <input id="fNumero" class="form-control" required>
+                  </div>
+
+                  <div class="col-md-6">
+                    <label class="form-label">Fecha</label>
+                    <input id="fFecha" type="date" class="form-control" required>
+                  </div>
+
+                  <div class="col-md-12">
+                    <label class="form-label">Proveedor (opcional)</label>
+                    <select id="fProveedor" class="form-select">
+                      <option value="">—</option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-6">
+                    <label class="form-label">Monto total (opcional)</label>
+                    <input id="fMonto" type="number" step="0.01" class="form-control">
+                  </div>
+
+                  <div class="col-md-12">
+                    <label class="form-label">Descripción</label>
+                    <textarea id="fDesc" class="form-control" rows="2"></textarea>
+                  </div>
+
+                  <div class="col-md-12">
+                    <label class="form-label">Archivo (PDF/IMG)</label>
+                    <input id="fArchivo" type="file" class="form-control" accept=".pdf,image/*" required>
+                  </div>
+
+                  <div class="col-md-12">
+                    <label class="form-label">Productos asociados (multi selección)</label>
+                    <input id="buscadorProductos" class="form-control mb-2" placeholder="Buscar por N° serie..." />
+                    <select id="fProductos" class="form-select" multiple size="8" required></select>
+                    <div class="small text-muted mt-1">
+                      Tip: mantén Ctrl/Shift para seleccionar varios.
+                    </div>
+                  </div>
+
+                  <div class="col-12 d-flex justify-content-end">
+                    <button class="btn btn-primary" type="submit">
+                      <i class="bi bi-check-circle me-1"></i>Guardar
+                    </button>
+                  </div>
+                </form>
+
+                <div id="msgForm" class="small mt-3"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Listado -->
+          <div class="col-lg-7">
+            <div class="card shadow-sm border-0">
+              <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-list-ul me-2"></i>Listado de facturas</span>
+                <div class="d-flex gap-2">
+                  <input id="filtroProductoId" class="form-control form-control-sm" style="max-width:160px" placeholder="Producto ID">
+                  <button id="btnFiltrar" class="btn btn-sm btn-outline-primary">
+                    Filtrar
+                  </button>
+                  <button id="btnLimpiar" class="btn btn-sm btn-outline-secondary">
+                    Limpiar
+                  </button>
+                </div>
+              </div>
+
+              <div class="card-body">
+                <div id="listaFacturas" class="text-muted small">Cargando...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <footer class="text-center mt-4 small text-muted">
+          © 2025 Grupo Coyahue — Sistema de Inventario
+        </footer>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/src/js/main.js"></script>
+  <script type="module" src="/src/js/facturas.js"></script>
+</body>
+</html>

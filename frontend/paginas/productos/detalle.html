@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="/src/css/styles.css">
 </head>
 
-<body> 
+<body>
 
   <!-- TOPBAR -->
   <nav class="topbar" id="app-topbar"></nav>
@@ -37,9 +37,8 @@
             <p class="text-muted mb-0">Información completa del equipo.</p>
           </div>
           <div class="d-flex gap-2">
-            <!-- NUEVO BOTÓN: Cambiar estado -->
-            <button id="btnCambiarEstado" type="button"
-              class="btn btn-outline-secondary btn-sm"
+            <!-- Cambiar estado -->
+            <button id="btnCambiarEstado" type="button" class="btn btn-outline-secondary btn-sm"
               data-bs-toggle="modal" data-bs-target="#modalCambiarEstado">
               <i class="bi bi-arrow-left-right me-1"></i> Cambiar estado
             </button>
@@ -76,10 +75,27 @@
                     <p class="mb-1"><strong>Sucursal:</strong> <span id="sucursalProd">—</span></p>
                     <p class="mb-1"><strong>Estado:</strong> <span id="estadoProd">—</span></p>
                   </div>
+
                   <div class="col-md-6">
                     <p class="mb-1"><strong>Fecha compra:</strong> <span id="fechaProd">—</span></p>
                     <p class="mb-1"><strong>Garantía:</strong> <span id="garantiaProd">—</span></p>
-                    <p class="mb-1"><strong>Documento / Factura:</strong> <span id="facturaProd">—</span></p>
+
+                    <!-- ✅ AQUÍ: factura + botón (sale donde está el mensaje) -->
+                    <p class="mb-1">
+                      <strong>Documento / Factura:</strong>
+                      <span id="facturaProd">—</span>
+
+                      <a id="btnDescargarFactura"
+                        href="#"
+                        class="btn btn-sm btn-outline-success ms-2 d-none"
+                        target="_blank"
+                        rel="noopener">
+                        <i class="bi bi-download me-1"></i> Descargar
+                      </a>
+                    </p>
+
+                    <!-- (opcional) valor compra -->
+                    <p class="mb-1"><strong>Valor compra:</strong> <span id="precioProd">—</span></p>
                   </div>
                 </div>
 
@@ -94,15 +110,14 @@
             </div>
           </div>
 
-          <!-- QR + Historial -->
+          <!-- QR + Movimientos -->
           <div class="col-lg-4">
             <!-- QR -->
             <div class="card border-0 shadow-sm mb-3">
               <div class="card-body text-center">
                 <h6 class="fw-semibold mb-2">Código QR</h6>
                 <div class="d-flex justify-content-center">
-                  <img id="qr-img" src="" alt="QR del producto"
-                    style="max-width: 200px; max-height: 200px;">
+                  <img id="qr-img" src="" alt="QR del producto" style="max-width: 200px; max-height: 200px;">
                 </div>
               </div>
             </div>
@@ -143,8 +158,8 @@
   </div>
 
   <!-- MODAL CAMBIAR ESTADO -->
-  <div class="modal fade" id="modalCambiarEstado" tabindex="-1"
-    aria-labelledby="modalCambiarEstadoLabel" aria-hidden="true">
+  <div class="modal fade" id="modalCambiarEstado" tabindex="-1" aria-labelledby="modalCambiarEstadoLabel"
+    aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -160,7 +175,6 @@
             <label for="nuevoEstado" class="form-label">Nuevo estado</label>
             <select id="nuevoEstado" class="form-select">
               <option value="">Seleccione estado...</option>
-              <!-- opciones desde productos.js -->
             </select>
           </div>
           <div class="mb-3">

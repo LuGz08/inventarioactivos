@@ -1,238 +1,465 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nuevo Producto - Inventario Coyahue</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agregar Producto - Inventario Coyahue</title>
 
-  <!-- Bootstrap -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-
-  <!-- Estilos -->
-  <link rel="stylesheet" href="/src/css/styles.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/css/styles.css" />
 </head>
 
 <body>
-  <!-- TOPBAR -->
+  <!-- TOPBAR dinámica -->
   <nav class="topbar" id="app-topbar"></nav>
 
   <div class="app-container">
-    <!-- SIDEBAR -->
+    <!-- SIDEBAR dinámica -->
     <aside class="sidebar" id="app-sidebar"></aside>
 
-    <!-- CONTENIDO -->
     <main class="main-content">
       <div class="container-fluid">
 
-        <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h2 class="fw-bold text-primary mb-0">Nuevo Producto</h2>
+          <div>
+            <h2 class="fw-bold text-primary mb-0">
+              <i class="bi bi-box-seam me-2"></i>Agregar Producto
+            </h2>
+            <p class="text-muted mb-0">Completa los datos para registrar un nuevo equipo.</p>
+          </div>
           <a href="listar.html" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left"></i> Volver
+            <i class="bi bi-arrow-left"></i> Volver al listado
           </a>
         </div>
 
-        <div class="row g-4">
+        <div class="card p-4 shadow-sm border-0">
+          <form id="formProducto">
+            <div class="row g-3">
 
-          <!-- FORMULARIO -->
-          <div class="col-lg-8">
-            <div class="card p-4">
-              <form id="formProducto">
-                <div class="row g-3">
+              <!-- Código -->
+              <div class="col-md-4">
+                <label class="form-label">Código / N° Serie *</label>
+                <input type="text" id="codigo" class="form-control" required />
+              </div>
 
-                  <div class="col-md-4">
-                    <label class="form-label">Nro. de serie *</label>
-                    <input type="text" class="form-control" id="codigo" required>
+              <!-- Proveedor -->
+              <div class="col-md-4">
+                <label class="form-label">Proveedor *</label>
+                <select id="proveedor" class="form-select" required>
+                  <option value="">Cargando...</option>
+                </select>
+              </div>
+
+              <!-- Categoría -->
+              <div class="col-md-4">
+                <label class="form-label">Categoría *</label>
+                <select id="categoria" class="form-select" required>
+                  <option value="">Cargando...</option>
+                </select>
+              </div>
+
+              <!-- Marca -->
+              <div class="col-md-6">
+                <label class="form-label d-flex justify-content-between align-items-center">
+                  <span>Marca *</span>
+
+                  <!-- + con menú (Marca) -->
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-outline-success btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                      <i class="bi bi-plus-lg"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+          
+                      <li>
+                        <a class="dropdown-item" href="/paginas/marcas/listar.html" target="_blank" rel="noopener">
+                          <i class="bi bi-box-arrow-up-right me-2"></i>Gestionar marcas
+                        </a>
+                      </li>
+                    </ul>
                   </div>
+                </label>
 
-                  <div class="col-md-4">
-                    <label class="form-label">Proveedor *</label>
-                    <select id="proveedor" class="form-select" required>
-                      <option value="">Cargando...</option>
-                    </select>
+                <select id="marca" class="form-select" required>
+                  <option value="">Cargando...</option>
+                </select>
+                <small class="text-muted">Al elegir una marca, se filtrarán los modelos disponibles.</small>
+              </div>
+
+              <!-- Modelo -->
+              <div class="col-md-6">
+                <label class="form-label d-flex justify-content-between align-items-center">
+                  <span>Modelo *</span>
+
+                  <!-- + con menú (Modelo) -->
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-outline-success btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                      <i class="bi bi-plus-lg"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+     
+                        <a class="dropdown-item" href="/paginas/modelos/listar.html" target="_blank" rel="noopener">
+                          <i class="bi bi-box-arrow-up-right me-2"></i>Gestionar modelos
+                        </a>
+                      </li>
+                    </ul>
                   </div>
+                </label>
 
-                  <div class="col-md-4">
-                    <label class="form-label">Modelo *</label>
-                    <select id="modelo" class="form-select" required>
-                      <option value="">Cargando...</option>
-                    </select>
-                  </div>
+                <select id="modelo" class="form-select" required>
+                  <option value="">Selecciona una marca primero...</option>
+                </select>
+              </div>
 
-                  <div class="col-md-4">
-                    <label class="form-label">Categoría *</label>
-                    <select id="categoria" class="form-select" required>
-                      <option value="">Cargando...</option>
-                    </select>
-                  </div>
+              <!-- Estado -->
+              <div class="col-md-4">
+                <label class="form-label">Estado *</label>
+                <select id="estado" class="form-select" required>
+                  <option value="">Cargando...</option>
+                </select>
+              </div>
 
-                  <div class="col-md-4">
-                    <label class="form-label">Sucursal (opcional)</label>
-                    <select id="sucursal" class="form-select">
-                      <option value="">(Ninguna)</option>
-                    </select>
-                  </div>
+              <!-- Sucursal -->
+              <div class="col-md-4">
+                <label class="form-label">Sucursal</label>
+                <select id="sucursal" class="form-select">
+                  <option value="">Cargando...</option>
+                </select>
+              </div>
 
-                  <div class="col-md-4">
-                    <label class="form-label">Estado *</label>
-                    <select id="estado" class="form-select" required>
-                      <option value="">Cargando...</option>
-                    </select>
-                  </div>
+              <!-- Fecha compra -->
+              <div class="col-md-4">
+                <label class="form-label">Fecha de compra *</label>
+                <input type="date" id="fechaCompra" class="form-control" required />
+              </div>
 
-                  <div class="col-md-4">
-                    <label class="form-label">Fecha de compra *</label>
-                    <input type="date" class="form-control" id="fechaCompra" required>
-                  </div>
+              <!-- Garantía -->
+              <div class="col-md-4">
+                <label class="form-label">Garantía (meses) *</label>
+                <input type="number" min="0" id="mesesGarantia" class="form-control" required />
+              </div>
 
-                  <div class="col-md-4">
-                    <label class="form-label">Meses de garantía *</label>
-                    <input type="number" class="form-control" id="mesesGarantia" min="0" required>
-                  </div>
+              <!-- Valor compra -->
+              <div class="col-md-4">
+                <label class="form-label">Valor de compra</label>
+                <input type="number" min="0" step="0.01" id="valorCompra" class="form-control" placeholder="Ej: 399990" />
+                <small class="text-muted">Se usa para reportes (costo total, promedios, etc.).</small>
+              </div>
+<div class="col-md-12">
+  <div class="card border-info">
+    <div class="card-header bg-info text-white fw-bold">Facturación</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Seleccionar Factura Existente</label>
+          <select id="facturaSelect" class="form-select">
+            <option value="">Seleccione...</option>
+            <option value="__new__">➕ Agregar nueva factura</option>
+          </select>
+        </div>
+      </div>
 
-                  <div class="col-md-4">
-                    <label class="form-label">Factura / Documento *</label>
-                    <input type="text" class="form-control" id="factura" required
-                      placeholder="FAC-2024-0012 o similar">
-                  </div>
+      <div id="facturaNuevaBox" class="border rounded p-3 mt-3 d-none bg-light">
+        <h6 class="text-primary mb-3"><i class="bi bi-receipt"></i> Datos de Nueva Factura</h6>
+        <div class="row g-2">
+          <div class="col-md-4">
+            <label class="form-label">N° Factura *</label>
+            <input id="facturaNumero" type="text" class="form-control" placeholder="Ej: 12345">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Fecha Emisión *</label>
+            <input id="facturaFecha" type="date" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Monto Total *</label>
+            <input id="facturaMonto" type="number" class="form-control" step="0.01" min="0">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Proveedor de la Factura *</label>
+            <select id="facturaProveedor" class="form-select">
+              <option value="">Seleccione proveedor...</option>
+              </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Archivo (PDF/IMG) *</label>
+            <input id="facturaArchivo" type="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+          </div>
+          
+          <div class="col-12 text-end mt-2">
+            <button type="button" id="btnGuardarFactura" class="btn btn-primary btn-sm">
+              <i class="bi bi-save"></i> Guardar Factura Independiente
+            </button>
+            <small class="d-block text-muted mt-1">O presiona "Guardar Producto" al final para guardar todo junto.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-                </div>
-
-                <!-- COMPONENTES DEL PRODUCTO -->
-                <div class="card mt-4 p-3 border-primary">
-                  <h5 class="fw-bold text-primary mb-3">Componentes del equipo</h5>
+              <!-- COMPONENTES -->
+              <div class="col-12 mt-2">
+                <div class="border rounded p-3">
+                  <h6 class="fw-bold mb-3"><i class="bi bi-cpu me-2"></i>Componentes (opcional)</h6>
 
                   <div class="row g-3">
-
+                    <!-- CPU -->
                     <div class="col-md-6">
-                      <label class="form-label">CPU</label>
-                      <div class="input-group">
-                        <select id="cpu" class="form-select">
-                          <option value="">Cargando...</option>
-                        </select>
-                        <button type="button" id="btnNuevaCPU" class="btn btn-outline-primary">
-                          <i class="bi bi-plus"></i>
-                        </button>
-                      </div>
+                      <label class="form-label d-flex justify-content-between align-items-center">
+                        <span>CPU</span>
+
+                        <!-- + con menú (CPU) -->
+                        <div class="btn-group">
+                          <button type="button" class="btn btn-outline-success btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-plus-lg"></i>
+                          </button>
+                          <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                              <button type="button" class="dropdown-item" id="btnNuevaCPU">
+                                <i class="bi bi-plus-circle me-2"></i>Agregar CPU
+                              </button>
+                            </li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                              <a class="dropdown-item" href="/paginas/cpu/listar.html" target="_blank" rel="noopener">
+                                <i class="bi bi-box-arrow-up-right me-2"></i>Gestionar CPU
+                              </a>
+                            </li>
+                          </ul>
+                        </div>
+                      </label>
+
+                      <select id="cpu" class="form-select">
+                        <option value="">Cargando...</option>
+                      </select>
                     </div>
 
+                    <!-- GPU -->
                     <div class="col-md-6">
-                      <label class="form-label">GPU</label>
-                      <div class="input-group">
-                        <select id="gpu" class="form-select">
-                          <option value="">Cargando...</option>
-                        </select>
-                        <button type="button" id="btnNuevaGPU" class="btn btn-outline-primary">
-                          <i class="bi bi-plus"></i>
-                        </button>
-                      </div>
+                      <label class="form-label d-flex justify-content-between align-items-center">
+                        <span>GPU</span>
+
+                        <!-- + con menú (GPU) -->
+                        <div class="btn-group">
+                          <button type="button" class="btn btn-outline-success btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-plus-lg"></i>
+                          </button>
+                          <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                              <button type="button" class="dropdown-item" id="btnNuevaGPU">
+                                <i class="bi bi-plus-circle me-2"></i>Agregar GPU
+                              </button>
+                            </li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                              <a class="dropdown-item" href="/paginas/gpu/listar.html" target="_blank" rel="noopener">
+                                <i class="bi bi-box-arrow-up-right me-2"></i>Gestionar GPU
+                              </a>
+                            </li>
+                          </ul>
+                        </div>
+                      </label>
+
+                      <select id="gpu" class="form-select">
+                        <option value="">Cargando...</option>
+                      </select>
                     </div>
 
+                    <!-- RAM -->
                     <div class="col-md-6">
-                      <label class="form-label">RAM (GB) </label>
-                      <input type="number" id="ram" class="form-control" min="1" >
+                      <label class="form-label">RAM (GB)</label>
+                      <input type="number" min="0" id="ram" class="form-control" placeholder="Ej: 16" />
                     </div>
 
+                    <!-- Almacenamiento -->
                     <div class="col-md-6">
-                      <label class="form-label">Almacenamiento (GB) </label>
-                      <input type="number" id="almacenamiento" class="form-control" min="1">
+                      <label class="form-label">Almacenamiento (GB)</label>
+                      <input type="number" min="0" id="almacenamiento" class="form-control" placeholder="Ej: 512" />
                     </div>
-
                   </div>
                 </div>
-
-                <div class="mt-4 d-flex justify-content-end gap-2">
-                  <a href="listar.html" class="btn btn-outline-secondary">Cancelar</a>
-                  <button type="submit" class="btn btn-primary">Guardar</button>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          <!-- QR / INFO LATERAL -->
-          <div class="col-lg-4">
-            <div class="card p-4 text-center">
-              <h5 class="mb-3 fw-semibold">QR del Producto</h5>
-              <div id="qrPreview" class="mb-3 text-muted small">
-                El QR se generará automáticamente después de guardar el producto.
               </div>
-            </div>
-          </div>
 
+              <!-- Botones -->
+              <div class="col-12 mt-4 d-flex justify-content-end gap-2">
+                <a href="listar.html" class="btn btn-outline-secondary">
+                  <i class="bi bi-x-circle me-2"></i>Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                  <i class="bi bi-check-circle me-2"></i>Guardar Producto
+                </button>
+              </div>
+
+            </div>
+          </form>
         </div>
+
+        <div class="footer">
+          <p>© 2025 Grupo Coyahue — Sistema de Inventario</p>
+        </div>
+
       </div>
     </main>
   </div>
 
-  <!-- MODAL: Crear nueva CPU -->
-<div class="modal fade" id="modalNuevaCPU" tabindex="-1" aria-labelledby="modalNuevaCPULabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title" id="modalNuevaCPULabel">Agregar nueva CPU</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
+  <!-- ===================== MODALES ===================== -->
 
-      <div class="modal-body">
-        <form id="formNuevaCPU">
-          <div class="mb-3">
-            <label class="form-label">Marca</label>
-            <input type="text" id="cpuNombre" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Modelo</label>
-            <input type="text" id="cpuGeneracion" class="form-control" required>
-          </div>
-        </form>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button class="btn btn-primary" id="btnGuardarCPU">Guardar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-
-<!-- MODAL: Crear nueva GPU -->
-<div class="modal fade" id="modalNuevaGPU" tabindex="-1" aria-labelledby="modalNuevaGPULabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title" id="modalNuevaGPULabel">Agregar nueva GPU</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-
-      <div class="modal-body">
-        <form id="formNuevaGPU">
-          <div class="mb-3">
-            <label class="form-label">Marca</label>
-            <input type="text" id="gpuNombre" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Modelo</label>
-            <input type="text" id="gpuTipo" class="form-control" required>
-          </div>
-        </form>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button class="btn btn-primary" id="btnGuardarGPU">Guardar</button>
+  <!-- Modal Nueva Marca -->
+  <div class="modal fade" id="modalNuevaMarca" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title"><i class="bi bi-tags me-2"></i>Nueva Marca</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formNuevaMarca">
+            <div class="mb-3">
+              <label class="form-label">Nombre *</label>
+              <input type="text" class="form-control" id="nuevaMarcaNombre" required />
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-success" id="btnGuardarMarca">
+            <i class="bi bi-check-circle me-2"></i>Guardar
+          </button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
+  <!-- Modal Nuevo Modelo -->
+  <div class="modal fade" id="modalNuevoModelo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title"><i class="bi bi-cpu me-2"></i>Nuevo Modelo</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formNuevoModelo">
+            <div class="mb-3">
+              <label class="form-label">Marca *</label>
+              <select class="form-select" id="nuevoModeloMarca" required>
+                <option value="">Cargando...</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Nombre del modelo *</label>
+              <input type="text" class="form-control" id="nuevoModeloNombre" required />
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-success" id="btnGuardarModelo">
+            <i class="bi bi-check-circle me-2"></i>Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <!-- SCRIPTS -->
+  <!-- Modal Nueva CPU -->
+  <div class="modal fade" id="modalNuevaCPU" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title"><i class="bi bi-cpu me-2"></i>Nueva CPU</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Nombre / Modelo *</label>
+            <input type="text" class="form-control" id="cpuNombre" placeholder="Ej: Intel Core i5-10400" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Generación</label>
+            <input type="text" class="form-control" id="cpuGeneracion" placeholder="Ej: 10th Gen" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Velocidad</label>
+            <input type="text" class="form-control" id="cpuVelocidad" placeholder="Ej: 2.9 GHz" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-success" id="btnGuardarCPU">
+            <i class="bi bi-check-circle me-2"></i>Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nueva GPU -->
+  <div class="modal fade" id="modalNuevaGPU" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title"><i class="bi bi-gpu-card me-2"></i>Nueva GPU</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Nombre / Modelo *</label>
+            <input type="text" class="form-control" id="gpuNombre" placeholder="Ej: NVIDIA GTX 1650" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Memoria (GB)</label>
+            <input type="number" min="0" class="form-control" id="gpuMemoria" placeholder="Ej: 4" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Tipo</label>
+            <input type="text" class="form-control" id="gpuTipo" placeholder="Ej: GDDR6" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-success" id="btnGuardarGPU">
+            <i class="bi bi-check-circle me-2"></i>Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="/src/js/main.js"></script>
   <script type="module" src="/src/js/productos.js"></script>
+
+  <!-- Toggle UI: mostrar campos de nueva factura cuando select == "__new__" -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const sel = document.getElementById("facturaSelect");
+      const box = document.getElementById("facturaNuevaCampos");
+      if (!sel || !box) return;
+
+      const sync = () => {
+        const isNew = sel.value === "__new__";
+        box.style.display = isNew ? "" : "none";
+        if (!isNew) {
+          const ids = ["facturaNumero", "facturaFecha", "facturaMonto", "facturaArchivo"];
+          ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (el.type === "file") el.value = "";
+            else el.value = "";
+          });
+        } else {
+          // Si no hay fecha de factura, sugerimos la fecha de compra del producto
+          const fProd = document.getElementById("fechaCompra");
+          const fFac = document.getElementById("facturaFecha");
+          if (fFac && !fFac.value && fProd && fProd.value) fFac.value = fProd.value;
+        }
+      };
+
+      sel.addEventListener("change", sync);
+      sync();
+    });
+  </script>
 </body>
 </html>

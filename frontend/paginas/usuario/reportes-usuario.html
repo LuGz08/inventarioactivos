@@ -8,6 +8,14 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link rel="stylesheet" href="/src/css/styles.css">
+  
+  <style>
+    .chart-container {
+        position: relative;
+        height: 250px;
+        width: 100%;
+    }
+  </style>
 </head>
 
 <body>
@@ -20,133 +28,99 @@
     <main class="main-content">
       <div class="container-fluid">
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-4">
           <div>
-            <h2 class="fw-bold text-primary mb-0">
-              <i class="bi bi-graph-up me-2"></i>Reportes y Estadísticas
+            <h2 class="fw-bold text-primary mb-1">
+              <i class="bi bi-bar-chart-line-fill me-2"></i>Reportes Generales
             </h2>
-            <p class="text-muted mb-0">Visualización de datos del inventario</p>
+            <p class="text-muted mb-0">Resumen de inventario disponible</p>
           </div>
-          <a href="panel.html" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left"></i> Volver al panel
-          </a>
+          <div class="d-flex gap-2">
+            <button class="btn btn-success text-white shadow-sm" id="btnExportarExcel">
+              <i class="bi bi-file-earmark-excel me-2"></i>Excel
+            </button>
+            <button class="btn btn-danger text-white shadow-sm" id="btnExportarPDF">
+              <i class="bi bi-file-pdf me-2"></i>PDF
+            </button>
+          </div>
         </div>
 
-        <!-- Resumen general -->
         <div class="row g-3 mb-4">
           <div class="col-md-3">
-            <div class="card p-3 bg-primary bg-opacity-10 border-primary">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <p class="text-muted small mb-0">Total Productos</p>
-                  <h4 class="fw-bold mb-0" id="totalProductos">0</h4>
-                </div>
-                <i class="bi bi-box-seam fs-2 text-primary"></i>
-              </div>
+            <div class="card p-3 border-start border-4 border-primary shadow-sm">
+              <small class="text-muted text-uppercase fw-bold">Total Equipos</small>
+              <h3 class="fw-bold mb-0 text-primary" id="totalProductos">0</h3>
             </div>
           </div>
-
           <div class="col-md-3">
-            <div class="card p-3 bg-success bg-opacity-10 border-success">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <p class="text-muted small mb-0">En Uso</p>
-                  <h4 class="fw-bold mb-0" id="totalEnUso">0</h4>
-                </div>
-                <i class="bi bi-check-circle fs-2 text-success"></i>
-              </div>
+            <div class="card p-3 border-start border-4 border-success shadow-sm">
+              <small class="text-muted text-uppercase fw-bold">En Uso</small>
+              <h3 class="fw-bold mb-0 text-success" id="totalEnUso">0</h3>
             </div>
           </div>
-
           <div class="col-md-3">
-            <div class="card p-3 bg-warning bg-opacity-10 border-warning">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <p class="text-muted small mb-0">Mantenimiento</p>
-                  <h4 class="fw-bold mb-0" id="totalMantencion">0</h4>
-                </div>
-                <i class="bi bi-tools fs-2 text-warning"></i>
-              </div>
+            <div class="card p-3 border-start border-4 border-warning shadow-sm">
+              <small class="text-muted text-uppercase fw-bold">Mantención</small>
+              <h3 class="fw-bold mb-0 text-warning" id="totalMantencion">0</h3>
             </div>
           </div>
-
           <div class="col-md-3">
-            <div class="card p-3 bg-info bg-opacity-10 border-info">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <p class="text-muted small mb-0">Sucursales</p>
-                  <h4 class="fw-bold mb-0" id="totalSucursales">0</h4>
-                </div>
-                <i class="bi bi-geo-alt fs-2 text-info"></i>
-              </div>
+            <div class="card p-3 border-start border-4 border-info shadow-sm">
+              <small class="text-muted text-uppercase fw-bold">Sucursales</small>
+              <h3 class="fw-bold mb-0 text-info" id="totalSucursales">0</h3>
             </div>
           </div>
         </div>
 
-        <!-- Gráficos -->
         <div class="row g-4 mb-4">
           <div class="col-lg-6">
-            <div class="card h-100">
-              <div class="card-header bg-white">
-                <h6 class="mb-0 fw-semibold">
-                  <i class="bi bi-pie-chart me-2"></i>
-                  Productos por Estado
-                </h6>
+            <div class="card h-100 shadow-sm border-0">
+              <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0 fw-bold">Distribución por Estado</h6>
               </div>
               <div class="card-body">
-                <canvas id="chartEstado" style="max-height: 280px;"></canvas>
+                <div class="chart-container">
+                    <canvas id="chartEstado"></canvas>
+                </div>
               </div>
             </div>
           </div>
 
           <div class="col-lg-6">
-            <div class="card h-100">
-              <div class="card-header bg-white">
-                <h6 class="mb-0 fw-semibold">
-                  <i class="bi bi-bar-chart me-2"></i>
-                  Productos por Sucursal
-                </h6>
+            <div class="card h-100 shadow-sm border-0">
+              <div class="card-header bg-white border-bottom">
+                <h6 class="mb-0 fw-bold">Equipos por Sucursal</h6>
               </div>
               <div class="card-body">
-                <canvas id="chartSucursal" style="max-height: 280px;"></canvas>
+                <div class="chart-container">
+                    <canvas id="chartSucursal"></canvas>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Tabla resumen -->
-        <div class="card">
-          <div class="card-header bg-white">
-            <h6 class="mb-0 fw-semibold">
-              <i class="bi bi-table me-2"></i>
-              Resumen por Sucursal
-            </h6>
+        <div class="card shadow-sm border-0">
+          <div class="card-header bg-white border-bottom py-3">
+            <h6 class="mb-0 fw-bold"><i class="bi bi-table me-2"></i>Detalle por Sucursal</h6>
           </div>
-          <div class="card-body p-0">
-            <div class="table-responsive">
-              <table class="table table-hover mb-0 align-middle">
-                <thead class="table-light">
-                  <tr>
-                    <th>Sucursal</th>
-                    <th class="text-center">Total</th>
-                    <th class="text-center">En Uso</th>
-                    <th class="text-center">Mantenimiento</th>
-                    <th class="text-center">Bodega/Baja</th>
-                  </tr>
-                </thead>
-                <tbody id="tablaResumen">
-                  <tr>
-                    <td colspan="5" class="text-center text-muted">Cargando datos...</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+          <div class="table-scroll">
+            <table class="table table-hover mb-0 align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Sucursal</th>
+                  <th class="text-center">Total</th>
+                  <th class="text-center">En Uso</th>
+                  <th class="text-center">Mantención</th>
+                  <th class="text-center">Bodega</th>
+                </tr>
+              </thead>
+              <tbody id="tablaResumen">
+                <tr><td colspan="5" class="text-center py-4">Cargando...</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
-
-        <footer class="text-center mt-4 small text-muted">
-          © 2025 Grupo Coyahue — Sistema de Inventario
-        </footer>
 
       </div>
     </main>
@@ -154,40 +128,39 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+
   <script type="module">
     import { API } from "/src/js/api.js";
+
+    // Variables globales para datos
+    let datosReporte = {
+        porSucursal: {},
+        totales: {}
+    };
 
     let chartEstado = null;
     let chartSucursal = null;
 
+    // --- CARGA UI COMPARTIDA (MISMO DISEÑO QUE ADMIN) ---
     function cargarSidebarUsuario() {
       const sidebar = document.getElementById("app-sidebar-user");
       if (!sidebar) return;
-
       sidebar.innerHTML = `
-        <img src="/src/img/logo-coyahue.png" alt="Logo Coyahue" class="logo" />
-        <nav>
-          <a class="nav-link" href="panel.html">
-            <i class="bi bi-house-door"></i> Inicio
-          </a>
-          <a class="nav-link" href="productos-usuario.html">
-            <i class="bi bi-box-seam"></i> Productos
-          </a>
-          <a class="nav-link" href="categorias-usuario.html">
-            <i class="bi bi-tags"></i> Categorías
-          </a>
-          <a class="nav-link" href="proveedores-usuario.html">
-            <i class="bi bi-truck"></i> Proveedores
-          </a>
-          <a class="nav-link" href="sucursales-usuario.html">
-            <i class="bi bi-geo-alt"></i> Sucursales
-          </a>
-          <a class="nav-link active" href="reportes-usuario.html">
-            <i class="bi bi-graph-up"></i> Reportes
-          </a>
-          <a class="nav-link" href="/paginas/usuario/ajustes-usuario.html">
-            <i class="bi bi-gear"></i> Ajustes
-          </a>
+        <div class="logo-container"><img src="/src/img/logo-coyahue.png" alt="Logo" class="logo" /></div>
+        <nav class="nav flex-column">
+          <small>Principal</small>
+          <a class="nav-link" href="panel.html"><i class="bi bi-grid-fill"></i> Panel General</a>
+          <small>Consultas</small>
+          <a class="nav-link" href="productos-usuario.html"><i class="bi bi-box-seam"></i> Productos</a>
+          <a class="nav-link" href="categorias-usuario.html"><i class="bi bi-tags"></i> Categorías</a>
+          <a class="nav-link" href="sucursales-usuario.html"><i class="bi bi-geo-alt"></i> Sucursales</a>
+          <a class="nav-link" href="proveedores-usuario.html"><i class="bi bi-truck"></i> Proveedores</a>
+          <small>Herramientas</small>
+          <a class="nav-link active" href="reportes-usuario.html"><i class="bi bi-file-earmark-bar-graph"></i> Reportes</a>
+          <a class="nav-link" href="/paginas/usuario/ajustes-usuario.html"><i class="bi bi-gear"></i> Mi Cuenta</a>
         </nav>
       `;
     }
@@ -195,41 +168,31 @@
     function cargarTopbarUsuario() {
       const topbar = document.getElementById("app-topbar");
       if (!topbar) return;
-
       const usuarioLog = localStorage.getItem("username") || "Usuario";
-
+      const inicial = usuarioLog.charAt(0).toUpperCase();
       topbar.innerHTML = `
-        <div class="d-flex align-items-center gap-2">
-          <button class="btn btn-link text-white d-lg-none p-0 me-2 menu-toggle" type="button">
-            <i class="bi bi-list fs-3"></i>
-          </button>
+        <div class="d-flex align-items-center">
+          <button class="menu-toggle me-3" onclick="document.querySelector('.sidebar').classList.toggle('open')"><i class="bi bi-list"></i></button>
+          <span class="fw-bold text-white d-lg-none">Coyahue</span>
         </div>
-        <div class="flex-grow-1"></div>
-        <div class="d-flex align-items-center gap-3">
-          <span id="btn-dark-toggle" class="toggle-dark" role="button">
-            <i class="bi bi-moon-stars-fill" id="dark-icon"></i>
-          </span>
+        <div class="topbar-right">
+          <span id="btn-dark-toggle" class="toggle-dark" role="button"><i class="bi bi-moon-stars-fill" id="dark-icon"></i></span>
           <div class="dropdown">
-            <button class="btn btn-sm btn-outline-light dropdown-toggle user-area"
-                    type="button" data-bs-toggle="dropdown">
-              ${usuarioLog}
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="/paginas/ajustes/ajustes.html">Ajustes</a></li>
+            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle user-area" data-bs-toggle="dropdown">
+              <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width:32px; height:32px; font-weight:bold;">${inicial}</div>
+              <span class="d-none d-md-block">${usuarioLog}</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+              <li><a class="dropdown-item" href="/paginas/usuario/ajustes-usuario.html">Mi Perfil</a></li>
               <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" onclick="window.cerrarSesion()">Cerrar sesión</a></li>
+              <li><a class="dropdown-item text-danger" onclick="window.cerrarSesion()">Cerrar sesión</a></li>
             </ul>
           </div>
         </div>
       `;
     }
 
-    function normalizarLista(res) {
-      if (Array.isArray(res)) return res;
-      if (res && Array.isArray(res.results)) return res.results;
-      return [];
-    }
-
+    // --- LÓGICA DE DATOS ---
     async function cargarReportes() {
       try {
         const [productos, sucursales] = await Promise.all([
@@ -237,8 +200,8 @@
           API.get("sucursales/").catch(() => ({ results: [] })),
         ]);
 
-        const listaProd = normalizarLista(productos);
-        const listaSuc = normalizarLista(sucursales);
+        const listaProd = Array.isArray(productos) ? productos : productos.results;
+        const listaSuc = Array.isArray(sucursales) ? sucursales : sucursales.results;
 
         procesarDatos(listaProd, listaSuc);
       } catch (err) {
@@ -247,41 +210,35 @@
     }
 
     function procesarDatos(productos, sucursales) {
-      const totales = {
-        total: productos.length,
-        enUso: 0,
-        mantencion: 0,
-        bodega: 0,
-      };
-
+      const totales = { total: productos.length, enUso: 0, mantencion: 0, bodega: 0 };
       const porEstado = {};
       const porSucursal = {};
 
       productos.forEach(p => {
-        const estado = (p.estado_nombre || "").toLowerCase();
+        const estado = (p.estado_nombre || p.estado || "").toString().toLowerCase();
         const sucursal = (p.sucursal && p.sucursal.nombre) || p.sucursal_nombre || "Sin sucursal";
 
-        // Totales
-        if (estado.includes("uso")) totales.enUso++;
+        if (estado.includes("uso") || estado.includes("operativo")) totales.enUso++;
         else if (estado.includes("mant")) totales.mantencion++;
         else totales.bodega++;
 
-        // Por estado
-        const keyEstado = estado || "Sin estado";
+        const keyEstado = p.estado_nombre || "Desconocido";
         if (!porEstado[keyEstado]) porEstado[keyEstado] = 0;
         porEstado[keyEstado]++;
 
-        // Por sucursal
-        if (!porSucursal[sucursal]) {
-          porSucursal[sucursal] = { total: 0, enUso: 0, mantencion: 0, bodega: 0 };
-        }
+        if (!porSucursal[sucursal]) porSucursal[sucursal] = { nombre: sucursal, total: 0, enUso: 0, mantencion: 0, bodega: 0 };
+        
         porSucursal[sucursal].total++;
-        if (estado.includes("uso")) porSucursal[sucursal].enUso++;
+        if (estado.includes("uso") || estado.includes("operativo")) porSucursal[sucursal].enUso++;
         else if (estado.includes("mant")) porSucursal[sucursal].mantencion++;
         else porSucursal[sucursal].bodega++;
       });
 
-      // Actualizar UI
+      // Guardar en global para exportar
+      datosReporte.porSucursal = porSucursal;
+      datosReporte.totales = totales;
+
+      // Renderizar UI
       document.getElementById("totalProductos").textContent = totales.total;
       document.getElementById("totalEnUso").textContent = totales.enUso;
       document.getElementById("totalMantencion").textContent = totales.mantencion;
@@ -295,99 +252,107 @@
     function renderChartEstado(porEstado) {
       const ctx = document.getElementById("chartEstado");
       if (!ctx) return;
-
       if (chartEstado) chartEstado.destroy();
-
-      const labels = Object.keys(porEstado);
-      const data = Object.values(porEstado);
 
       chartEstado = new Chart(ctx, {
         type: "doughnut",
         data: {
-          labels,
-          datasets: [{
-            data,
-            backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6c757d'],
-          }],
+          labels: Object.keys(porEstado),
+          datasets: [{ data: Object.values(porEstado), backgroundColor: ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#6c757d'] }]
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom' }
-          }
-        }
+        options: { responsive: true, maintainAspectRatio: false }
       });
     }
 
     function renderChartSucursal(porSucursal) {
       const ctx = document.getElementById("chartSucursal");
       if (!ctx) return;
-
       if (chartSucursal) chartSucursal.destroy();
-
-      const labels = Object.keys(porSucursal);
-      const data = labels.map(s => porSucursal[s].total);
 
       chartSucursal = new Chart(ctx, {
         type: "bar",
         data: {
-          labels,
-          datasets: [{
-            label: "Productos",
-            data,
-            backgroundColor: '#0dcaf0',
-          }],
+          labels: Object.keys(porSucursal),
+          datasets: [{ label: "Cantidad", data: Object.values(porSucursal).map(s => s.total), backgroundColor: '#0dcaf0' }]
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: { y: { beginAtZero: true } },
-          plugins: { legend: { display: false } }
-        }
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
       });
     }
 
     function renderTablaResumen(porSucursal) {
       const tbody = document.getElementById("tablaResumen");
       if (!tbody) return;
-
-      if (!Object.keys(porSucursal).length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Sin datos</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = "";
-      Object.entries(porSucursal).forEach(([nombre, stats]) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${nombre}</td>
-          <td class="text-center"><strong>${stats.total}</strong></td>
-          <td class="text-center">${stats.enUso}</td>
-          <td class="text-center">${stats.mantencion}</td>
-          <td class="text-center">${stats.bodega}</td>
-        `;
-        tbody.appendChild(tr);
-      });
+      tbody.innerHTML = Object.values(porSucursal).map(s => `
+        <tr>
+          <td><strong>${s.nombre}</strong></td>
+          <td class="text-center"><span class="badge bg-primary">${s.total}</span></td>
+          <td class="text-center">${s.enUso}</td>
+          <td class="text-center">${s.mantencion}</td>
+          <td class="text-center">${s.bodega}</td>
+        </tr>
+      `).join("");
     }
 
-    window.cerrarSesion = function() {
-      localStorage.clear();
-      window.location.href = "/paginas/login/login.html";
+    // --- FUNCIONES DE EXPORTACIÓN ---
+    
+    window.exportarExcel = function() {
+        if (!XLSX) return alert("Librería Excel no cargada");
+        
+        const data = Object.values(datosReporte.porSucursal).map(s => ({
+            "Sucursal": s.nombre,
+            "Total Equipos": s.total,
+            "En Uso": s.enUso,
+            "En Mantención": s.mantencion,
+            "En Bodega": s.bodega
+        }));
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, "Inventario General");
+        XLSX.writeFile(wb, `Reporte_General_${new Date().toISOString().slice(0,10)}.xlsx`);
     };
 
+    window.exportarPDF = function() {
+        const { jsPDF } = window.jspdf;
+        if (!jsPDF) return alert("Librería PDF no cargada");
+
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text("Reporte General de Inventario", 14, 20);
+        doc.setFontSize(10);
+        doc.text(`Generado: ${new Date().toLocaleString()}`, 14, 28);
+
+        const body = Object.values(datosReporte.porSucursal).map(s => [
+            s.nombre, s.total, s.enUso, s.mantencion, s.bodega
+        ]);
+
+        doc.autoTable({
+            startY: 35,
+            head: [['Sucursal', 'Total', 'En Uso', 'Mantención', 'Bodega']],
+            body: body,
+            theme: 'grid',
+            headStyles: { fillColor: [13, 110, 253] }
+        });
+
+        doc.save(`Reporte_General_${new Date().toISOString().slice(0,10)}.pdf`);
+    };
+
+    // Listeners botones
+    document.getElementById("btnExportarExcel")?.addEventListener("click", window.exportarExcel);
+    document.getElementById("btnExportarPDF")?.addEventListener("click", window.exportarPDF);
+
+    // Configuración inicial
+    window.cerrarSesion = function() { localStorage.clear(); window.location.href = "/paginas/login/login.html"; };
+    
     function configurarTema() {
       const body = document.body;
       const toggle = document.getElementById("btn-dark-toggle");
       const icon = document.getElementById("dark-icon");
       if (!toggle || !icon) return;
-
-      const temaGuardado = localStorage.getItem("theme") || "light";
-      if (temaGuardado === "dark") {
-        body.classList.add("dark-mode");
-        icon.classList.replace("bi-moon-stars-fill", "bi-brightness-high-fill");
-      }
-
+      
+      const tema = localStorage.getItem("theme") || "light";
+      if (tema === "dark") { body.classList.add("dark-mode"); icon.classList.replace("bi-moon-stars-fill", "bi-brightness-high-fill"); }
+      
       toggle.addEventListener("click", () => {
         const esDark = body.classList.toggle("dark-mode");
         icon.classList.toggle("bi-moon-stars-fill", !esDark);

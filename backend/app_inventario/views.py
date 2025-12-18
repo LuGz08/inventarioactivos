@@ -1,4 +1,7 @@
 from datetime import date
+import pandas as pd # Necesario para leer Excel
+from django.db import transaction # Para atomicidad en base de datos
+
 from rest_framework.filters import OrderingFilter, SearchFilter
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -10,10 +13,11 @@ from .services import NotificacionService
 from django.contrib.auth.decorators import login_required
 
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, status, filters
+from rest_framework import viewsets, status, filters, permissions
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser # Parsers para subida de archivos
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -23,7 +27,7 @@ from .models import (
     Usuarios, Asignaciones, Mantenciones, HistorialEstados,
     Documentaciones, Notificaciones, LogAcceso, Sucursales, 
     CodigoQR, Usuarios, Movimientos,
-    CPU, GPU, Componentes,
+    CPU, GPU, Componentes, Facturas
 )
 from .serializers import (
     ProveedoresSerializer, MarcasSerializer, CategoriasSerializer,
@@ -35,7 +39,7 @@ from .serializers import (
     HistorialEstadosSerializer, HistorialEstadosCreateSerializer,
     DocumentacionesSerializer, NotificacionesSerializer, LogAccesoSerializer, UsuariosUpdateSerializer, MovimientosSerializer,
     CPUSerializer, GPUSerializer,
-    ComponentesSerializer, 
+    ComponentesSerializer,  FacturaSerializer
 )
 from .forms import (
     ProductoForm, ProductoFilterForm,
@@ -47,7 +51,7 @@ from .forms import (
     CPUForm, CPUFilterForm,
     GPUForm, GPUFilterForm,
 )
-
+from django.contrib.auth.models import User # Asegurar importación de User
 
 # ================== JWT PERSONALIZADO ==================
 
@@ -158,7 +162,6 @@ class CodigoQRViewSet(viewsets.ModelViewSet):
     serializer_class = CodigoQRSerializer
     permission_classes = [IsAuthenticated]
 
-
 # ============= VIEWSET DE PRODUCTOS =============
 
 
@@ -174,13 +177,12 @@ class ProductosViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         OPTIMIZACIÓN CON SELECT_RELATED:
-
         En lugar de hacer una consulta por cada relación (proveedor, modelo, etc.),
         select_related hace un JOIN en SQL y trae todos los datos en una sola consulta.
         """
         return (
             Productos.objects.select_related(
-                "proveedor", "modelo", "modelo__marca", "categoria", "estado"
+                "proveedor", "modelo", "modelo__marca", "categoria", "estado", "sucursal",
             )
             .all()
         )
@@ -192,6 +194,112 @@ class ProductosViewSet(viewsets.ModelViewSet):
         elif self.action in ["create", "update", "partial_update"]:
             return ProductosCreateUpdateSerializer
         return ProductosListSerializer
+
+    # ======================================================
+    # IMPORTACIÓN MASIVA DE PRODUCTOS (Excel)
+    # ======================================================
+    @action(detail=False, methods=['post'], parser_classes=[MultiPartParser, FormParser])
+    def importar_excel(self, request):
+        """
+        Carga masiva de productos desde Excel.
+        Columnas esperadas: 
+        nro_serie, fecha_compra, valor, marca, modelo, categoria, estado, sucursal, proveedor, garantia_meses
+        """
+        archivo = request.FILES.get('archivo')
+        if not archivo:
+            return Response({'error': 'No se envió ningún archivo.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            df = pd.read_excel(archivo)
+            creados = 0
+            errores = []
+
+            # Se usa transacción atómica para asegurar integridad, 
+            # aunque capturamos errores por fila para permitir cargas parciales si se desea.
+            with transaction.atomic():
+                for index, row in df.iterrows():
+                    try:
+                        # 1. Validar Nro Serie único
+                        serie = str(row['nro_serie']).strip()
+                        if Productos.objects.filter(nro_serie=serie).exists():
+                            errores.append(f"Fila {index+2}: Serie {serie} ya existe.")
+                            continue
+
+                        # 2. Resolver Relaciones (Foreign Keys)
+                        # Busca por nombre, si no existe lo crea (get_or_create)
+                        
+                        # Marca y Modelo
+                        marca_nombre = str(row.get('marca', 'Generica')).strip()
+                        modelo_nombre = str(row.get('modelo', 'Generico')).strip()
+                        
+                        marca_obj, _ = Marcas.objects.get_or_create(nombre=marca_nombre)
+                        modelo_obj, _ = Modelos.objects.get_or_create(marca=marca_obj, nombre=modelo_nombre)
+
+                        # Categoria
+                        cat_nombre = str(row.get('categoria', 'General')).strip()
+                        cat_obj, _ = Categorias.objects.get_or_create(nombre=cat_nombre)
+
+                        # Estado
+                        est_nombre = str(row.get('estado', 'Operativo')).strip()
+                        # Intentamos buscar exacto, si no, creamos o asignamos uno por defecto
+                        estado_obj, _ = Estados.objects.get_or_create(nombre=est_nombre)
+
+                        # Sucursal
+                        suc_nombre = str(row.get('sucursal', 'Matriz')).strip()
+                        suc_obj, _ = Sucursales.objects.get_or_create(nombre=suc_nombre)
+
+                        # Proveedor
+                        prov_nombre = str(row.get('proveedor', '')).strip()
+                        if prov_nombre:
+                            # Buscamos proveedor que contenga el nombre
+                            prov_obj = Proveedores.objects.filter(nombre__icontains=prov_nombre).first()
+                            if not prov_obj:
+                                # Opcional: Crear proveedor genérico si no existe
+                                prov_obj, _ = Proveedores.objects.get_or_create(
+                                    nombre=prov_nombre, 
+                                    defaults={'rut': '99999999-9', 'contacto': 'S/I', 'telefono': '000', 'correo': 'sin@correo.com'}
+                                )
+                        else:
+                            # Proveedor por defecto si viene vacío
+                            prov_obj, _ = Proveedores.objects.get_or_create(nombre="Proveedor Desconocido", defaults={'rut': '00000000-0', 'correo': 'na@na.com'})
+
+                        # Fecha
+                        fecha = row.get('fecha_compra')
+                        if pd.isna(fecha):
+                            fecha = date.today()
+
+                        # Valor
+                        valor = row.get('valor', 0)
+                        if pd.isna(valor): valor = 0
+
+                        # Garantía
+                        garantia = row.get('garantia_meses', 12)
+                        if pd.isna(garantia): garantia = 12
+
+                        # 3. Crear Producto
+                        Productos.objects.create(
+                            nro_serie=serie,
+                            fecha_compra=fecha,
+                            valor_compra=valor,
+                            modelo=modelo_obj,
+                            categoria=cat_obj,
+                            estado=estado_obj,
+                            sucursal=suc_obj,
+                            proveedor=prov_obj,
+                            garantia_meses=int(garantia)
+                        )
+                        creados += 1
+
+                    except Exception as ex:
+                        errores.append(f"Fila {index+2}: Error - {str(ex)}")
+
+            return Response({
+                'mensaje': f'Importación finalizada. Productos creados: {creados}.',
+                'errores': errores
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({'error': f'Error procesando el archivo: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=["get"])
     def disponibles(self, request):
@@ -304,18 +412,7 @@ from .serializers import (
 class UsuariosViewSet(viewsets.ModelViewSet):
     """
     CRUD de usuarios + endpoints de perfil y cambio de contraseña.
-
-    Rutas principales:
-      - GET    /api/usuarios/               -> lista de usuarios
-      - POST   /api/usuarios/               -> crear usuario
-      - GET    /api/usuarios/{id}/          -> detalle
-      - PATCH  /api/usuarios/{id}/          -> actualizar usuario
-      - DELETE /api/usuarios/{id}/          -> eliminar usuario
-
-      - GET    /api/usuarios/me/            -> datos del usuario logueado
-      - PATCH  /api/usuarios/me/            -> actualizar sus datos
-
-      - POST   /api/usuarios/cambiar_password/ -> cambiar contraseña
+    Incluye importación masiva.
     """
 
     queryset = Usuarios.objects.select_related("user").all()
@@ -342,6 +439,80 @@ class UsuariosViewSet(viewsets.ModelViewSet):
         if self.action in ["update", "partial_update"]:
             return UsuariosUpdateSerializer
         return UsuariosSerializer
+
+    # ======================================================
+    # IMPORTACIÓN MASIVA DE USUARIOS (Excel)
+    # ======================================================
+    @action(detail=False, methods=['post'], parser_classes=[MultiPartParser, FormParser])
+    def importar_excel(self, request):
+        """
+        Carga masiva de usuarios desde Excel.
+        Columnas esperadas: username, email, password, nombre, apellido, rol, es_staff
+        """
+        archivo = request.FILES.get('archivo')
+        if not archivo:
+            return Response({'error': 'No se envió ningún archivo.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            df = pd.read_excel(archivo)
+            
+            # Columnas mínimas requeridas
+            if 'username' not in df.columns or 'password' not in df.columns:
+                return Response({'error': 'El archivo debe tener al menos las columnas "username" y "password".'}, status=status.HTTP_400_BAD_REQUEST)
+
+            creados = 0
+            errores = []
+
+            with transaction.atomic():
+                for index, row in df.iterrows():
+                    try:
+                        username = str(row['username']).strip()
+                        if User.objects.filter(username=username).exists():
+                            errores.append(f"Fila {index+2}: Usuario '{username}' ya existe.")
+                            continue
+
+                        # Datos opcionales
+                        email = row.get('email', '')
+                        if pd.isna(email): email = ''
+                        
+                        password = str(row['password'])
+                        
+                        nombre = row.get('nombre', '')
+                        if pd.isna(nombre): nombre = ''
+                        
+                        apellido = row.get('apellido', '')
+                        if pd.isna(apellido): apellido = ''
+
+                        es_staff = str(row.get('es_staff', 'no')).lower() in ['si', 'yes', 'true', '1']
+
+                        # 1. Crear User Django
+                        user = User.objects.create_user(
+                            username=username,
+                            email=email,
+                            password=password,
+                            first_name=nombre,
+                            last_name=apellido
+                        )
+                        user.is_staff = es_staff
+                        user.save()
+
+                        # 2. Crear Perfil Usuario (modelo Usuarios)
+                        rol_input = str(row.get('rol', 'USUARIO')).upper()
+                        rol = 'ADMIN' if rol_input in ['ADMIN', 'ADMINISTRADOR'] else 'USUARIO'
+
+                        Usuarios.objects.create(user=user, rol=rol)
+                        creados += 1
+
+                    except Exception as e:
+                        errores.append(f"Fila {index+2}: {str(e)}")
+
+            return Response({
+                'mensaje': f'Proceso finalizado. Usuarios creados: {creados}.',
+                'errores': errores
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({'error': f'Error procesando archivo: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
 
     # ---------- PERFIL: /api/usuarios/me/ ----------
     @action(detail=False, methods=["get", "patch"], url_path="me")
@@ -622,13 +793,87 @@ class ComponentesViewSet(viewsets.ModelViewSet):
     serializer_class = ComponentesSerializer
 
 
+class FacturasViewSet(viewsets.ModelViewSet):
+    queryset = Facturas.objects.select_related('proveedor').prefetch_related('productos').all()
+    serializer_class = FacturaSerializer
+    permission_classes = [IsAuthenticated]
+
+    parser_classes = (MultiPartParser, FormParser)
+
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['proveedor', 'fecha_emision']
+    search_fields = ['numero_factura', 'observaciones']
+    ordering_fields = ['fecha_emision', 'monto_total']
+    ordering = ['-fecha_emision']
+
+    @action(detail=True, methods=['get'])
+    def productos(self, request, pk=None):
+        """Lista productos asociados a esta factura"""
+        factura = self.get_object()
+        productos = factura.productos.all()
+        from .serializers import ProductosListSerializer
+        serializer = ProductosListSerializer(productos, many=True, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def agregar_producto(self, request, pk=None):
+        """Asocia un producto existente a esta factura"""
+        factura = self.get_object()
+        producto_id = request.data.get('producto_id')
+        
+        if not producto_id:
+            return Response(
+                {'error': 'Se requiere producto_id'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from .models import Productos
+            producto = Productos.objects.get(id=producto_id)
+            factura.productos.add(producto)
+            return Response({'mensaje': f'Producto {producto.nro_serie} asociado correctamente'})
+        except Productos.DoesNotExist:
+            return Response(
+                {'error': 'Producto no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    @action(detail=True, methods=['post'])
+    def quitar_producto(self, request, pk=None):
+        """Desasocia un producto de esta factura"""
+        factura = self.get_object()
+        producto_id = request.data.get('producto_id')
+        
+        if not producto_id:
+            return Response(
+                {'error': 'Se requiere producto_id'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from .models import Productos
+            producto = Productos.objects.get(id=producto_id)
+            factura.productos.remove(producto)
+            return Response({'mensaje': f'Producto {producto.nro_serie} desasociado correctamente'})
+        except Productos.DoesNotExist:
+            return Response(
+                {'error': 'Producto no encontrado'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 
-
-
-
-
-
+class MovimientosViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para gestionar movimientos de stock.
+    """
+    queryset = Movimientos.objects.all()
+    serializer_class = MovimientosSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ["tipo", "sku"]
+    search_fields = ["sku", "proveedor", "referencia", "comentarios"]
+    ordering_fields = ["fecha", "cantidad"]
+    ordering = ["-fecha"]
 
 
 # ============= VISTAS BASADAS EN TEMPLATES (HTML) =============
@@ -1448,26 +1693,6 @@ def reportes(request):
         "title": "Generador de Reportes",
     }
     return render(request, "reportes.html", context)
-
-class MovimientosViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet para gestionar movimientos de stock.
-
-    Endpoints:
-      - GET    /api/movimientos/           -> lista
-      - POST   /api/movimientos/           -> crear
-      - GET    /api/movimientos/{id}/      -> detalle
-      - PUT    /api/movimientos/{id}/      -> actualizar
-      - DELETE /api/movimientos/{id}/      -> eliminar
-    """
-    queryset = Movimientos.objects.all()
-    serializer_class = MovimientosSerializer
-    permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ["tipo", "sku"]
-    search_fields = ["sku", "proveedor", "referencia", "comentarios"]
-    ordering_fields = ["fecha", "cantidad"]
-    ordering = ["-fecha"]
 
 
 def cpu_list(request):

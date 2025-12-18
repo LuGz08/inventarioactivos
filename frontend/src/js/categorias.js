@@ -4,6 +4,7 @@
 import { API } from "/src/js/api.js";
 
 let categoriasCache = [];
+let modoEdicion = false; // Estado global para mostrar/ocultar botones
 
 // ----------------------------
 // Helpers
@@ -66,6 +67,7 @@ function initListarCategorias() {
   const inputNombre = document.getElementById("filtroNombre");
   const selectTipo = document.getElementById("filtroTipo");
   const btnLimpiar = document.getElementById("btnLimpiarFiltros");
+  const btnToggleEdicion = document.getElementById("btnToggleEdicion");
 
   const aplicar = () => aplicarFiltrosCategorias();
 
@@ -75,6 +77,32 @@ function initListarCategorias() {
     btnLimpiar.addEventListener("click", () => {
       if (inputNombre) inputNombre.value = "";
       if (selectTipo) selectTipo.value = "";
+      aplicarFiltrosCategorias();
+    });
+  }
+
+  // Botón para toggle modo edición
+  if (btnToggleEdicion) {
+    btnToggleEdicion.addEventListener("click", () => {
+      modoEdicion = !modoEdicion;
+      
+      // Cambiar texto e ícono del botón
+      const icono = btnToggleEdicion.querySelector("i");
+      const texto = btnToggleEdicion.querySelector("span");
+      
+      if (modoEdicion) {
+        icono.className = "bi bi-x-circle";
+        texto.textContent = " Cancelar";
+        btnToggleEdicion.classList.remove("btn-outline-warning");
+        btnToggleEdicion.classList.add("btn-warning");
+      } else {
+        icono.className = "bi bi-pencil-square";
+        texto.textContent = " Editar";
+        btnToggleEdicion.classList.remove("btn-warning");
+        btnToggleEdicion.classList.add("btn-outline-warning");
+      }
+      
+      // Re-renderizar las categorías con/sin botones
       aplicarFiltrosCategorias();
     });
   }
@@ -137,8 +165,19 @@ function renderCategorias(lista) {
     card.className = "col-md-4";
 
     const nombre = cat.nombre || "Sin nombre";
-    const tipoVisual = nombre;
     const imagen = getCategoriaImagen(cat);
+
+    // Botones solo se muestran si modoEdicion está activo
+    const botonesHTML = modoEdicion ? `
+      <div class="mt-3 d-flex gap-1 botones-edicion">
+        <a href="editar.html?id=${cat.id}" class="btn btn-warning btn-sm">
+          <i class="bi bi-pencil-fill"></i> Editar
+        </a>
+        <a href="eliminar.html?id=${cat.id}" class="btn btn-danger btn-sm">
+          <i class="bi bi-trash-fill"></i> Eliminar
+        </a>
+      </div>
+    ` : '';
 
     card.innerHTML = `
       <div class="card shadow-sm p-3 category-card h-100">
@@ -147,33 +186,30 @@ function renderCategorias(lista) {
              class="img-fluid rounded mb-3 w-100" 
              style="height:160px;object-fit:cover;">
 
-        <h5 class="fw-bold">${nombre}</h5>
-        <p class="text-muted small">${tipoVisual}</p>
-
-        <div class="mt-3 d-flex gap-1">
-          <a href="editar.html?id=${cat.id}" class="btn btn-warning btn-sm">
-            <i class="bi bi-pencil-fill"></i>
-          </a>
-          <a href="eliminar.html?id=${cat.id}" class="btn btn-danger btn-sm">
-            <i class="bi bi-trash-fill"></i>
-          </a>
-        </div>
+        <h5 class="fw-bold text-center">${nombre}</h5>
+        
+        ${botonesHTML}
       </div>
     `;
 
     const innerCard = card.querySelector(".category-card");
 
-    // 👉 Hacer clic en el card lleva a productos filtrados
-    innerCard.addEventListener("click", (event) => {
-      // Si el click fue en un botón o link, NO redirigimos
-      if (event.target.closest("a, button")) return;
+    // 👉 Hacer clic en el card lleva a productos filtrados (solo si NO está en modo edición)
+    if (!modoEdicion) {
+      innerCard.style.cursor = "pointer";
+      innerCard.addEventListener("click", (event) => {
+        // Si el click fue en un botón o link, NO redirigimos
+        if (event.target.closest("a, button")) return;
 
-      const url = `/paginas/productos/listar.html?categoria_id=${encodeURIComponent(
-        cat.id
-      )}&categoria=${encodeURIComponent(nombre)}`;
+        const url = `/paginas/productos/listar.html?categoria_id=${encodeURIComponent(
+          cat.id
+        )}&categoria=${encodeURIComponent(nombre)}`;
 
-      window.location.href = url;
-    });
+        window.location.href = url;
+      });
+    } else {
+      innerCard.style.cursor = "default";
+    }
 
     contenedor.appendChild(card);
   });

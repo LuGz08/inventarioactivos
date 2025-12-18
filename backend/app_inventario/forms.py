@@ -2,7 +2,7 @@ from django import forms
 from .models import (
     Proveedores, Marcas, Categorias, 
     Modelos, Estados, Productos,
-    CPU, GPU,
+    CPU, GPU, Componentes, Facturas
 )
 
 
@@ -26,7 +26,8 @@ class ProductoForm(forms.ModelForm):
             'modelo', 
             'estado', 
             'proveedor', 
-            'documento_factura'
+
+
         ]
         widgets = {
             'nro_serie': forms.TextInput(attrs={
@@ -44,15 +45,12 @@ class ProductoForm(forms.ModelForm):
             }),
             'estado': forms.Select(attrs={'class': 'form-select'}),
             'proveedor': forms.Select(attrs={'class': 'form-select'}),
-            'documento_factura': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Número de factura (opcional)'
-            }),
+
         }
         labels = {
             'nro_serie': 'Número de Serie',
             'fecha_compra': 'Fecha de Compra',
-            'documento_factura': 'Número de Factura',
+
         }
     
     def __init__(self, *args, **kwargs):
@@ -122,7 +120,7 @@ class ProductoFilterForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     
-    # ✅ NUEVO: Filtro para productos disponibles
+
     solo_disponibles = forms.BooleanField(
         required=False,
         label='Solo productos disponibles',

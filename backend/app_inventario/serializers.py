@@ -4,21 +4,25 @@ from .models import (
     Proveedores, Marcas, Categorias, Modelos, Estados, 
     Productos, Usuarios, Asignaciones, Mantenciones, 
     HistorialEstados, Documentaciones, Notificaciones, LogAcceso,
-    Sucursales, CodigoQR, Movimientos, CPU, GPU, Componentes,
+    Sucursales, CodigoQR, Movimientos, CPU, GPU, Componentes, Facturas
 )
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-# ============= SERIALIZERS BÁSICOS =============
+
+# ============= AUTH TOKEN =============
+
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-
         # Campos extra en el payload:
         token["username"] = user.username
         token["is_staff"] = user.is_staff
-
         return token
+
+
+# ============= SERIALIZERS BÁSICOS =============
+
 class UserSerializer(serializers.ModelSerializer):
     """Serializer para el User de Django"""
     class Meta:
@@ -63,10 +67,12 @@ class EstadosSerializer(serializers.ModelSerializer):
         model = Estados
         fields = '__all__'
 
+
 class SucursalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sucursales
         fields = '__all__'
+
 
 class CodigoQRSerializer(serializers.ModelSerializer):
     imagen_qr_url = serializers.SerializerMethodField()
@@ -83,14 +89,12 @@ class CodigoQRSerializer(serializers.ModelSerializer):
             return obj.imagen_qr.url
         return None
 
-# ============= SERIALIZERS DE USUARIOS =============
 
 # ============= SERIALIZERS DE USUARIOS =============
 
 class UsuariosSerializer(serializers.ModelSerializer):
     """
     Serializer para LISTAR / VER usuarios.
-    Solo lectura de datos básicos (lo usas en list, retrieve, me).
     """
     username = serializers.CharField(source='user.username', read_only=True)
     email = serializers.EmailField(source='user.email', read_only=True)
@@ -159,7 +163,6 @@ class UsuariosCreateSerializer(serializers.ModelSerializer):
 class UsuariosUpdateSerializer(serializers.ModelSerializer):
     """
     Serializer para ACTUALIZAR usuarios existentes.
-    Permite cambiar nombre, email, is_staff y contraseña.
     """
     email = serializers.EmailField(source='user.email', required=False)
     first_name = serializers.CharField(source='user.first_name', required=False)
@@ -278,142 +281,159 @@ class ComponentesSerializer(serializers.ModelSerializer):
 
 # ============= SERIALIZERS DE PRODUCTOS =============
 
+# app_inventario/serializers.py
+
+class FacturaSerializer(serializers.ModelSerializer):
+    archivo_url = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Facturas
+        fields = [
+            "id",
+            "numero_factura",
+            "fecha_emision",
+            "proveedor",
+            "monto_total",
+            "archivo",
+            "archivo_url",
+            "observaciones",
+        ]
+
+    def get_archivo_url(self, obj):
+        if not obj.archivo:
+            return None
+        request = self.context.get("request")
+        url = obj.archivo.url
+        return request.build_absolute_uri(url) if request else url
+    archivo_url = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Facturas
+        fields = [
+            "id",
+            "numero_factura",
+            "fecha_emision",
+            "monto_total",
+            "archivo",
+            "archivo_url",
+            "proveedor",
+            "observaciones",
+            "fecha_registro",
+        ]
+        read_only_fields = ["fecha_registro", "archivo_url"]
+
+    def get_archivo_url(self, obj):
+        if not obj.archivo:
+            return None
+        request = self.context.get("request")
+        url = obj.archivo.url
+        return request.build_absolute_uri(url) if request else url
 class ProductosListSerializer(serializers.ModelSerializer):
-    """Serializer para listar productos (información resumida)"""
-    proveedor_nombre = serializers.CharField(source='proveedor.nombre', read_only=True)
+    """Serializer para listar productos con estado de garantía"""
+    proveedor_nombre = serializers.CharField(source="proveedor.nombre", read_only=True)
+    categoria_nombre = serializers.CharField(source="categoria.nombre", read_only=True)
+    estado_nombre = serializers.CharField(source="estado.nombre", read_only=True)
     modelo_nombre = serializers.SerializerMethodField()
-    categoria_nombre = serializers.CharField(source='categoria.nombre', read_only=True)
-    estado_nombre = serializers.CharField(source='estado.nombre', read_only=True)
     sucursal = SucursalSerializer(read_only=True)
-    codigo_qr = CodigoQRSerializer(read_only=True)  
+    codigo_qr = CodigoQRSerializer(read_only=True)
     componentes = serializers.SerializerMethodField()
+    facturas_info = serializers.SerializerMethodField()
+    valor_compra = serializers.SerializerMethodField()
+    
+    # NUEVO: Días restantes de garantía
+    dias_restantes = serializers.IntegerField(source='dias_restantes_garantia', read_only=True)
+
     class Meta:
         model = Productos
         fields = [
-            'id', 'nro_serie', 'fecha_compra', 
-            'proveedor', 'proveedor_nombre',
-            'modelo', 'modelo_nombre',
-            'categoria', 'categoria_nombre',
-            'estado', 'estado_nombre',
-            'documento_factura', 'sucursal', 'codigo_qr',
-            'garantia_meses', 'estado_garantia',
-            'componentes',
+            "id", "nro_serie", "fecha_compra", 
+            "garantia_meses", "fecha_venc_garantia", "estado_garantia", "dias_restantes",
+            "proveedor", "proveedor_nombre", "modelo", "modelo_nombre", 
+            "categoria", "categoria_nombre", "estado", "estado_nombre", 
+            "sucursal", "codigo_qr", "componentes", "valor_compra", "facturas_info"
         ]
-    
-    def get_componentes(self, obj):
-        """Obtener componentes de forma segura"""
-        if not hasattr(obj, 'componentes') or not obj.componentes:
-            return None
-            
-        comp = obj.componentes
-        return {
-            'ram_gb': comp.ram_gb,
-            'almacenamiento_gb': comp.almacenamiento_gb,
-            'cpu': {
-                'id': comp.cpu.id,
-                'marca': comp.cpu.marca,
-                'modelo': comp.cpu.modelo
-            } if comp.cpu else None,
-            'gpu': {
-                'id': comp.gpu.id,
-                'marca': comp.gpu.marca,
-                'modelo': comp.gpu.modelo
-            } if comp.gpu else None
-        }
-    
-    def get_modelo_nombre(self, obj):
-        return f"{obj.modelo.marca.nombre} {obj.modelo.nombre}"
 
+    def get_modelo_nombre(self, obj):
+        try: return f"{obj.modelo.marca.nombre} {obj.modelo.nombre}".strip()
+        except: return None
+
+    def get_componentes(self, obj):
+        comp = getattr(obj, "componentes", None)
+        if not comp: return None
+        return {
+            "ram_gb": comp.ram_gb, "almacenamiento_gb": comp.almacenamiento_gb,
+            "cpu": {"marca": comp.cpu.marca, "modelo": comp.cpu.modelo} if comp.cpu else None,
+            "gpu": {"marca": comp.gpu.marca, "modelo": comp.gpu.modelo} if comp.gpu else None,
+        }
+
+    def get_facturas_info(self, obj):
+        return [{"id": f.id, "numero": f.numero_factura, "fecha": f.fecha_emision} for f in obj.facturas.all()]
+
+    def get_valor_compra(self, obj): return obj.valor_compra
 
 class ProductosDetailSerializer(serializers.ModelSerializer):
+    # (Mantén tus campos anidados como antes)
     proveedor = ProveedoresSerializer(read_only=True)
     modelo = ModelosSerializer(read_only=True)
     categoria = CategoriasSerializer(read_only=True)
     estado = EstadosSerializer(read_only=True)
     sucursal = SucursalSerializer(read_only=True)
     componentes = ComponentesSerializer(read_only=True)
-
-    # QR asociado al producto (OneToOne: related_name='qr')
     codigo_qr = CodigoQRSerializer(read_only=True)
-
-    # Datos relacionados
-    asignaciones = serializers.SerializerMethodField()
-    mantenciones = serializers.SerializerMethodField()
-    historial_estados = serializers.SerializerMethodField()
+    facturas = FacturaSerializer(many=True, read_only=True)
+    
+    # NUEVO: Días restantes
+    dias_restantes = serializers.IntegerField(source='dias_restantes_garantia', read_only=True)
 
     class Meta:
         model = Productos
         fields = [
-            "id",
-            "nro_serie",
-            "fecha_compra",
-            "documento_factura",
-            "garantia_meses",
-            "fecha_venc_garantia",
-            "estado_garantia",
-            "proveedor",
-            "modelo",
-            "categoria",
-            "estado",
-            "sucursal",
-            "componentes",
-            "codigo_qr",
-            "asignaciones",
-            "mantenciones",
-            "historial_estados",
+            "id", "nro_serie", "fecha_compra", 
+            "garantia_meses", "fecha_venc_garantia", "estado_garantia", "dias_restantes",
+            "proveedor", "modelo", "categoria", "estado", "sucursal",
+            "componentes", "codigo_qr", "facturas", "valor_compra"
         ]
 
-    def get_asignaciones(self, obj):
-        """
-        Solo asignaciones activas (sin fecha_devolucion).
-        Se hace select_related para no spamear la BD.
-        """
-        qs = obj.asignaciones.select_related("usuario__user").filter(
-            fecha_devolucion__isnull=True
-        )
-        return AsignacionesSerializer(qs, many=True).data
-
-    def get_mantenciones(self, obj):
-        """
-        Últimas 5 mantenciones del producto.
-        """
-        qs = obj.mantenciones.select_related("proveedor").all()[:5]
-        return MantencionesSerializer(qs, many=True).data
-
-    def get_historial_estados(self, obj):
-        """
-        Últimos 10 cambios de estado del producto.
-        """
-        qs = obj.historial_estados.select_related("estado").all()[:10]
-        return HistorialEstadosSerializer(qs, many=True).data
-
-
 class ProductosCreateUpdateSerializer(serializers.ModelSerializer):
-    """Serializer para crear/actualizar productos"""
     componentes = ComponentesSerializer(write_only=True, required=False)
+    facturas_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
 
     class Meta:
         model = Productos
-        fields = '__all__'
-    
-    def update(self, instance, validated_data):
-        componentes_data = validated_data.pop('componentes', None)
+        fields = [
+            "id", "nro_serie", "fecha_compra", 
+            "garantia_meses",  # Entrada usuario
+            "fecha_venc_garantia", # Salida calculada
+            "estado_garantia",     # Salida calculada
+            "proveedor", "modelo", "categoria", "estado", "sucursal",
+            "componentes", "facturas_ids", "valor_compra"
+        ]
+        read_only_fields = ['fecha_venc_garantia', 'estado_garantia'] # El usuario no las edita directo
+
+    def create(self, validated_data):
+        componentes_data = validated_data.pop("componentes", None)
+        facturas_ids = validated_data.pop("facturas_ids", [])
+        producto = Productos.objects.create(**validated_data)
         
-        # Actualizar producto
+        if facturas_ids: producto.facturas.set(facturas_ids)
+        if componentes_data:
+            from .models import Componentes
+            Componentes.objects.update_or_create(producto=producto, defaults=componentes_data)
+        return producto
+
+    def update(self, instance, validated_data):
+        componentes_data = validated_data.pop("componentes", None)
+        facturas_ids = validated_data.pop("facturas_ids", None)
+        
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        instance.save()
-        
-        # Actualizar o crear componentes
+        instance.save() # Aquí se dispara el cálculo de garantía
+
+        if facturas_ids is not None: instance.facturas.set(facturas_ids)
         if componentes_data:
-            Componentes.objects.update_or_create(
-                producto=instance,
-                defaults=componentes_data
-            )
-        
+            from .models import Componentes
+            Componentes.objects.update_or_create(producto=instance, defaults=componentes_data)
         return instance
-
-
 # ============= SERIALIZERS DE ASIGNACIONES =============
 
 class AsignacionesSerializer(serializers.ModelSerializer):
@@ -432,7 +452,6 @@ class AsignacionesSerializer(serializers.ModelSerializer):
         ]
     
     def get_producto_info(self, obj):
-        """Obtiene información del producto con manejo de errores"""
         producto = getattr(obj, "producto", None)
         if not producto:
             return {}
@@ -445,7 +464,6 @@ class AsignacionesSerializer(serializers.ModelSerializer):
         }
     
     def get_usuario_nombre(self, obj):
-        """Obtiene nombre del usuario con manejo de errores"""
         usuario = getattr(obj, "usuario", None)
         user = getattr(usuario, "user", None) if usuario else None
         if user:
@@ -465,22 +483,13 @@ class AsignacionesCreateSerializer(serializers.ModelSerializer):
         fields = [
             'producto', 
             'usuario',
-            'fecha_devolucion'  # Opcional al crear
+            'fecha_devolucion'
         ]
     
     def create(self, validated_data):
-        """
-        Crear una nueva asignación
-        """
-        # El campo fecha_asignacion se asignará automáticamente por auto_now_add=True
         asignacion = Asignaciones.objects.create(**validated_data)
-        
-        # Aquí podrías agregar lógica adicional como:
-        # - Cambiar el estado del producto a "Asignado"
-        # - Crear una notificación
-        # - Registrar en el historial
-        
         return asignacion
+
 
 # ============= SERIALIZERS DE MANTENCIONES =============
 
@@ -499,15 +508,10 @@ class MantencionesSerializer(serializers.ModelSerializer):
             "proveedor",
             "proveedor_nombre",
             "fecha",
-            "descripcion",
-            "costo",
+            "detalle",     # <- coincide con el modelo
         ]
 
     def get_proveedor_nombre(self, obj):
-        """
-        El proveedor puede ser null (on_delete=SET_NULL), 
-        así que lo manejamos sin romper.
-        """
         if obj.proveedor:
             return obj.proveedor.nombre
         return ""
@@ -534,6 +538,8 @@ class HistorialEstadosSerializer(serializers.ModelSerializer):
             "fecha",
             "comentario",
         ]
+
+
 class HistorialEstadosCreateSerializer(serializers.ModelSerializer):
     """Serializer para crear historial (actualiza estado del producto automáticamente)"""
     class Meta:
@@ -541,14 +547,10 @@ class HistorialEstadosCreateSerializer(serializers.ModelSerializer):
         fields = ['producto', 'estado', 'comentario']
     
     def create(self, validated_data):
-        # Crear el registro de historial
         historial = super().create(validated_data)
-        
-        # Actualizar el estado actual del producto
         producto = validated_data['producto']
         producto.estado = validated_data['estado']
         producto.save()
-        
         return historial
 
 
@@ -568,8 +570,9 @@ class DocumentacionesSerializer(serializers.ModelSerializer):
 
 
 # ============= SERIALIZERS DE NOTIFICACIONES =============
+
 class NotificacionesSerializer(serializers.ModelSerializer):
-    producto_nombre = serializers.CharField(source='producto.nombre', read_only=True)
+    producto_nombre = serializers.CharField(source='producto.nro_serie', read_only=True)
     tiempo_transcurrido = serializers.SerializerMethodField()
     
     class Meta:
@@ -611,13 +614,13 @@ class LogAccesoSerializer(serializers.ModelSerializer):
     
     def get_usuario_nombre(self, obj):
         return obj.usuario.user.get_full_name()
-    
+
+
 # ============= SERIALIZERS DE MOVIMIENTOS =============
 
 class MovimientosSerializer(serializers.ModelSerializer):
     class Meta:
         model = Movimientos
         fields = "__all__"
-
 
 

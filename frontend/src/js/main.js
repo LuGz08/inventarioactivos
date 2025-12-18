@@ -5,12 +5,9 @@ function verificarSesion() {
   const accessToken = localStorage.getItem("accessToken");
   const estaEnLogin = window.location.pathname.includes("login.html");
 
-  // Si NO hay sesión → redirigimos al login
   if (!accessToken && !estaEnLogin) {
     window.location.href = "/paginas/login/login.html";
   }
-
-  // Si ya hay sesión y está en login → enviar al dashboard
   if (accessToken && estaEnLogin) {
     window.location.href = "/index.html";
   }
@@ -26,7 +23,7 @@ function cargarUI() {
   configurarTema();
 }
 
-// ===================== TOPBAR =====================
+// ===================== TOPBAR GENERATOR =====================
 function cargarTopbar() {
   const topbar = document.getElementById("app-topbar");
   if (!topbar) return;
@@ -34,111 +31,113 @@ function cargarTopbar() {
   const usuarioLog = localStorage.getItem("userLogin") || "Usuario";
   const currentPath = window.location.pathname;
 
-  // Botones extras sólo en productos (listar, agregar, editar)
+  // Botones de acción rápida para productos
   let accionesProductos = "";
-  const esPaginaRelevante =
-    currentPath.includes("/paginas/productos/") ||
-    currentPath.includes("/paginas/marcas/") ||
-    currentPath.includes("/paginas/modelos/") ||
-    currentPath.includes("/paginas/cpu/") ||
+  const esPaginaRelevante = 
+    currentPath.includes("/paginas/productos/") || 
+    currentPath.includes("/paginas/marcas/") || 
+    currentPath.includes("/paginas/modelos/") || 
+    currentPath.includes("/paginas/cpu/") || 
     currentPath.includes("/paginas/gpu/");
 
   if (esPaginaRelevante) {
-    const activeMarcas = currentPath.includes("/paginas/marcas/") ? "active" : "";
-    const activeModelos = currentPath.includes("/paginas/modelos/") ? "active" : "";
-    const activeCpu = currentPath.includes("/paginas/cpu/") ? "active" : "";
-    const activeGpu = currentPath.includes("/paginas/gpu/") ? "active" : "";
-
+    // Detectar activo para estilo (opcional)
+    const btnClass = "btn btn-sm btn-outline-light border-0";
     accionesProductos = `
-      <div class="d-none d-md-flex align-items-center gap-2 me-3">
-        <a href="/paginas/marcas/listar.html" class="btn btn-outline-light btn-sm ${activeMarcas}">
-          <i class="bi bi-tags"></i> Gestionar marcas
-        </a>
-        <a href="/paginas/modelos/listar.html" class="btn btn-outline-light btn-sm ${activeModelos}">
-          <i class="bi bi-diagram-3"></i> Gestionar modelos
-        </a>
-        <a href="/paginas/cpu/listar.html" class="btn btn-outline-light btn-sm ${activeCpu}">
-          <i class="bi bi-cpu"></i> Gestionar CPUs
-        </a>
-        <a href="/paginas/gpu/listar.html" class="btn btn-outline-light btn-sm ${activeGpu}">
-          <i class="bi bi-tags"></i> Gestionar GPUs
-        </a>
+      <div class="d-none d-lg-flex align-items-center gap-1 me-3">
+        <a href="/paginas/marcas/listar.html" class="${btnClass}"><i class="bi bi-tags"></i> Marcas</a>
+        <a href="/paginas/modelos/listar.html" class="${btnClass}"><i class="bi bi-diagram-3"></i> Modelos</a>
+        <div class="vr bg-light mx-2" style="opacity:0.3"></div>
       </div>
     `;
   }
 
   topbar.innerHTML = `
-    <div class="d-flex align-items-center gap-2">
-      <button class="btn btn-link text-white d-lg-none p-0 me-2 menu-toggle" type="button">
-        <i class="bi bi-list fs-3"></i>
+    <div class="d-flex align-items-center">
+      <button class="menu-toggle me-3" id="menuToggle">
+        <i class="bi bi-list"></i>
       </button>
+      
+      <span class="fw-bold text-white d-lg-none">Inventario</span>
     </div>
 
-    ${accionesProductos}
+    <div class="topbar-right">
+      ${accionesProductos}
 
-    <div class="d-flex align-items-center gap-3">
-
-      <!-- Notificaciones -->
-      <a href="/paginas/notificaciones/listar.html" class="text-white position-relative">
-        <i class="bi bi-bell-fill fs-4"></i>
-        <span id="badgeNoti"
-          class="badge bg-danger position-absolute top-0 start-100 translate-middle p-1 rounded-circle"
-          style="display:none;"></span>
+      <a href="/paginas/notificaciones/listar.html" class="text-white position-relative" title="Notificaciones">
+        <i class="bi bi-bell fs-5"></i>
+        <span id="badgeNoti" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle" style="display:none;"></span>
       </a>
 
-      <!-- Tema -->
-      <span id="btn-dark-toggle" class="toggle-dark" role="button">
-        <i class="bi bi-moon-stars-fill" id="dark-icon"></i>
-      </span>
-
-      <!-- Usuario -->
-      <div class="dropdown">
-        <button class="btn btn-sm btn-outline-light dropdown-toggle user-area"
-                type="button" data-bs-toggle="dropdown">
-          ${usuarioLog}
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end">
-          <li><a class="dropdown-item" href="/paginas/ajustes/ajustes.html">Ajustes</a></li>
-          <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item" onclick="cerrarSesion()">Cerrar sesión</a></li>
-        </ul>
+      <div class="toggle-dark" id="btn-dark-toggle" title="Cambiar tema">
+        <i class="bi bi-moon-stars" id="dark-icon"></i>
       </div>
 
+      <div class="dropdown">
+        <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle user-area" data-bs-toggle="dropdown">
+          <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width:32px; height:32px; font-weight:bold;">
+            ${usuarioLog.charAt(0).toUpperCase()}
+          </div>
+          <span class="d-none d-md-block">${usuarioLog}</span>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+          <li><h6 class="dropdown-header">Mi Cuenta</h6></li>
+          <li><a class="dropdown-item" href="/paginas/ajustes/ajustes.html"><i class="bi bi-gear me-2"></i>Ajustes</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item text-danger" href="#" onclick="cerrarSesion()"><i class="bi bi-box-arrow-right me-2"></i>Cerrar sesión</a></li>
+        </ul>
+      </div>
     </div>
   `;
 }
 
-// ===================== SIDEBAR =====================
+// ===================== SIDEBAR GENERATOR =====================
 function cargarSidebar() {
   const sidebar = document.getElementById("app-sidebar");
   if (!sidebar) return;
 
+  // Insertar Overlay para móviles si no existe
+  if (!document.getElementById('sidebarOverlay')) {
+    const overlay = document.createElement('div');
+    overlay.id = 'sidebarOverlay';
+    overlay.className = 'sidebar-overlay';
+    document.body.appendChild(overlay);
+  }
+
   sidebar.innerHTML = `
-<img src="/src/img/logo-coyahue.png" alt="Logo Coyahue" class="logo" />
-<nav>
-  <a class="nav-link" href="/index.html"><i class="bi bi-grid-fill"></i> Dashboard</a>
-  <a class="nav-link" href="/paginas/productos/listar.html"><i class="bi bi-box-seam"></i> Productos</a>
-  <a class="nav-link" href="/paginas/categorias/listar.html"><i class="bi bi-tags"></i> Categorías</a>
-  <a class="nav-link" href="/paginas/proveedores/listar.html"><i class="bi bi-truck"></i> Proveedores</a>
-  <a class="nav-link" href="/paginas/sucursal/listar.html"><i class="bi bi-geo-alt"></i> Sucursales</a>
-  <a class="nav-link" href="/paginas/stock/listar.html"><i class="bi bi-collection"></i> Stock</a>
-  <a class="nav-link" href="/paginas/reportes/listar.html"><i class="bi bi-graph-up"></i> Reportes</a>
-  <a class="nav-link" href="/paginas/notificaciones/listar.html"><i class="bi bi-bell-fill"></i> Notificaciones</a>
-  <a class="nav-link" href="/paginas/ajustes/ajustes.html"><i class="bi bi-gear"></i> Ajustes</a>
-  <a class="nav-link" href="/paginas/usuarios/listar.html"><i class="bi bi-people-fill"></i> Usuarios</a>
-</nav>
-`;
+    <div class="logo-container">
+      <img src="/src/img/logo-coyahue.png" alt="Logo" class="logo" />
+    </div>
+    
+    <nav class="nav flex-column">
+      <small class="ps-3 mb-2">Principal</small>
+      <a class="nav-link" href="/index.html"><i class="bi bi-speedometer2"></i> <span>Dashboard</span></a>
+      
+      <small class="ps-3 mb-2 mt-2">Gestión</small>
+      <a class="nav-link" href="/paginas/productos/listar.html"><i class="bi bi-box-seam"></i> <span>Productos</span></a>
+      <a class="nav-link" href="/paginas/stock/listar.html"><i class="bi bi-boxes"></i> <span>Stock / Movimientos</span></a>
+      <a class="nav-link" href="/paginas/categorias/listar.html"><i class="bi bi-tags"></i> <span>Categorías</span></a>
+      <a class="nav-link" href="/paginas/proveedores/listar.html"><i class="bi bi-truck"></i> <span>Proveedores</span></a>
+      <a class="nav-link" href="/paginas/sucursal/listar.html"><i class="bi bi-geo-alt"></i> <span>Sucursales</span></a>
+      
+      <small class="ps-3 mb-2 mt-2">Administración</small>
+      <a class="nav-link" href="/paginas/reportes/listar.html"><i class="bi bi-graph-up-arrow"></i> <span>Reportes</span></a>
+
+      <a class="nav-link" href="/paginas/usuarios/listar.html"><i class="bi bi-people"></i> <span>Usuarios</span></a>
+      <a class="nav-link" href="/paginas/notificaciones/listar.html"><i class="bi bi-bell"></i> <span>Notificaciones</span></a>
+    </nav>
+  `;
 }
 
-// ===================== CERRAR SESIÓN =====================
-function cerrarSesion() {
+// ===================== LOGOUT =====================
+window.cerrarSesion = function() {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("userLogin");
   window.location.href = "/paginas/login/login.html";
-}
+};
 
-// ===================== MARCAR NAV ACTIVO =====================
+// ===================== ACTIVE LINK =====================
 function marcarNavActivo() {
   const links = document.querySelectorAll(".sidebar nav a");
   const currentPath = window.location.pathname;
@@ -146,40 +145,69 @@ function marcarNavActivo() {
   links.forEach(link => {
     const href = link.getAttribute("href");
     if (!href) return;
+    
+    // Lógica para marcar activo incluso en subpáginas
+    const pathClean = currentPath.split('/').slice(0, 3).join('/'); // /paginas/productos
+    const hrefClean = href.split('/').slice(0, 3).join('/'); 
 
-    if (currentPath.includes(href.replace("/", ""))) {
+    if (currentPath === href || (href !== "/index.html" && currentPath.includes(hrefClean))) {
       link.classList.add("active");
     }
   });
 }
 
-// ===================== MENU MOVIL =====================
+// ===================== MOBILE MENU & OVERLAY =====================
 function configurarMenuMovil() {
-  const btnMenu = document.querySelector(".menu-toggle");
-  const sidebar = document.querySelector(".sidebar");
-  if (!btnMenu || !sidebar) return;
+  const btnToggle = document.getElementById("menuToggle");
+  const sidebar = document.getElementById("app-sidebar");
+  const overlay = document.getElementById("sidebarOverlay");
 
-  btnMenu.addEventListener("click", () => sidebar.classList.toggle("open"));
-}
+  if (!btnToggle || !sidebar || !overlay) return;
 
-// ===================== MODO OSCURO =====================
-function configurarTema() {
-  const body = document.body;
-  const toggle = document.getElementById("btn-dark-toggle");
-  const icon = document.getElementById("dark-icon");
-  if (!toggle || !icon) return;
-
-  const temaGuardado = localStorage.getItem("theme") || "light";
-  if (temaGuardado === "dark") {
-    body.classList.add("dark-mode");
-    icon.classList.replace("bi-moon-stars-fill", "bi-brightness-high-fill");
+  function toggleMenu() {
+    sidebar.classList.toggle("open");
+    overlay.classList.toggle("active");
   }
 
-  toggle.addEventListener("click", () => {
+  // Abrir/Cerrar con botón
+  btnToggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleMenu();
+  });
+
+  // Cerrar al dar click fuera (en el overlay)
+  overlay.addEventListener("click", () => {
+    sidebar.classList.remove("open");
+    overlay.classList.remove("active");
+  });
+}
+
+// ===================== MODO OSCURO (PERSISTENTE) =====================
+function configurarTema() {
+  const body = document.body;
+  const toggleBtn = document.getElementById("btn-dark-toggle");
+  const icon = document.getElementById("dark-icon");
+
+  if (!toggleBtn || !icon) return;
+
+  const temaGuardado = localStorage.getItem("theme") || "light";
+  
+  // Aplicar tema inicial
+  if (temaGuardado === "dark") {
+    body.classList.add("dark-mode");
+    icon.classList.replace("bi-moon-stars", "bi-brightness-high");
+  }
+
+  toggleBtn.addEventListener("click", () => {
     const esDark = body.classList.toggle("dark-mode");
-    icon.classList.toggle("bi-moon-stars-fill", !esDark);
-    icon.classList.toggle("bi-brightness-high-fill", esDark);
-    localStorage.setItem("theme", esDark ? "dark" : "light");
+    
+    if (esDark) {
+      icon.classList.replace("bi-moon-stars", "bi-brightness-high");
+      localStorage.setItem("theme", "dark");
+    } else {
+      icon.classList.replace("bi-brightness-high", "bi-moon-stars");
+      localStorage.setItem("theme", "light");
+    }
   });
 }
 

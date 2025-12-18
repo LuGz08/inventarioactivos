@@ -32,7 +32,6 @@
           </a>
         </div>
 
-        <!-- Filtros -->
         <div class="card shadow-sm border-0 mb-4">
           <div class="card-body">
             <div class="row g-3">
@@ -58,7 +57,6 @@
           </div>
         </div>
 
-        <!-- Vista de tarjetas -->
         <div id="vistaCards" class="row g-4" style="min-height: 400px;">
           <div class="col-12 text-center">
             <div class="spinner-border text-primary mt-5" role="status">
@@ -75,7 +73,6 @@
     </main>
   </div>
 
-  <!-- Modal Detalle -->
   <div class="modal fade" id="modalDetalle" tabindex="-1">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
@@ -87,8 +84,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body" id="modalContenido">
-          <!-- Se llenará dinámicamente -->
-        </div>
+          </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
         </div>
@@ -102,34 +98,23 @@
 
     let productosCache = [];
 
+    // --- CARGA UI COMPARTIDA ---
     function cargarSidebarUsuario() {
       const sidebar = document.getElementById("app-sidebar-user");
       if (!sidebar) return;
-
       sidebar.innerHTML = `
-        <img src="/src/img/logo-coyahue.png" alt="Logo Coyahue" class="logo" />
-        <nav>
-          <a class="nav-link" href="panel.html">
-            <i class="bi bi-house-door"></i> Inicio
-          </a>
-          <a class="nav-link active" href="productos-usuario.html">
-            <i class="bi bi-box-seam"></i> Productos
-          </a>
-          <a class="nav-link" href="categorias-usuario.html">
-            <i class="bi bi-tags"></i> Categorías
-          </a>
-          <a class="nav-link" href="proveedores-usuario.html">
-            <i class="bi bi-truck"></i> Proveedores
-          </a>
-          <a class="nav-link" href="sucursales-usuario.html">
-            <i class="bi bi-geo-alt"></i> Sucursales
-          </a>
-          <a class="nav-link" href="reportes-usuario.html">
-            <i class="bi bi-graph-up"></i> Reportes
-          </a>
-          <a class="nav-link" href="/paginas/usuario/ajustes-usuario.html">
-            <i class="bi bi-gear"></i> Ajustes
-          </a>
+        <div class="logo-container"><img src="/src/img/logo-coyahue.png" alt="Logo" class="logo" /></div>
+        <nav class="nav flex-column">
+          <small>Principal</small>
+          <a class="nav-link" href="panel.html"><i class="bi bi-grid-fill"></i> Panel General</a>
+          <small>Consultas</small>
+          <a class="nav-link active" href="productos-usuario.html"><i class="bi bi-box-seam"></i> Productos</a>
+          <a class="nav-link" href="categorias-usuario.html"><i class="bi bi-tags"></i> Categorías</a>
+          <a class="nav-link" href="sucursales-usuario.html"><i class="bi bi-geo-alt"></i> Sucursales</a>
+          <a class="nav-link" href="proveedores-usuario.html"><i class="bi bi-truck"></i> Proveedores</a>
+          <small>Herramientas</small>
+          <a class="nav-link" href="reportes-usuario.html"><i class="bi bi-file-earmark-bar-graph"></i> Reportes</a>
+          <a class="nav-link" href="/paginas/usuario/ajustes-usuario.html"><i class="bi bi-gear"></i> Mi Cuenta</a>
         </nav>
       `;
     }
@@ -137,32 +122,24 @@
     function cargarTopbarUsuario() {
       const topbar = document.getElementById("app-topbar");
       if (!topbar) return;
-
       const usuarioLog = localStorage.getItem("username") || "Usuario";
-
+      const inicial = usuarioLog.charAt(0).toUpperCase();
       topbar.innerHTML = `
-        <div class="d-flex align-items-center gap-2">
-          <button class="btn btn-link text-white d-lg-none p-0 me-2 menu-toggle" type="button">
-            <i class="bi bi-list fs-3"></i>
-          </button>
+        <div class="d-flex align-items-center">
+          <button class="menu-toggle me-3" onclick="document.querySelector('.sidebar').classList.toggle('open')"><i class="bi bi-list"></i></button>
+          <span class="fw-bold text-white d-lg-none">Coyahue</span>
         </div>
-
-        <div class="flex-grow-1"></div>
-
-        <div class="d-flex align-items-center gap-3">
-          <span id="btn-dark-toggle" class="toggle-dark" role="button">
-            <i class="bi bi-moon-stars-fill" id="dark-icon"></i>
-          </span>
-
+        <div class="topbar-right">
+          <span id="btn-dark-toggle" class="toggle-dark" role="button"><i class="bi bi-moon-stars-fill" id="dark-icon"></i></span>
           <div class="dropdown">
-            <button class="btn btn-sm btn-outline-light dropdown-toggle user-area"
-                    type="button" data-bs-toggle="dropdown">
-              ${usuarioLog}
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="/paginas/ajustes/ajustes.html">Ajustes</a></li>
+            <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle user-area" data-bs-toggle="dropdown">
+              <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width:32px; height:32px; font-weight:bold;">${inicial}</div>
+              <span class="d-none d-md-block">${usuarioLog}</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+              <li><a class="dropdown-item" href="/paginas/usuario/ajustes-usuario.html">Mi Perfil</a></li>
               <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" onclick="window.cerrarSesion()">Cerrar sesión</a></li>
+              <li><a class="dropdown-item text-danger" onclick="window.cerrarSesion()">Cerrar sesión</a></li>
             </ul>
           </div>
         </div>
@@ -184,13 +161,33 @@
       return campo;
     }
 
+    // --- CARGA DE PRODUCTOS Y APLICACIÓN DE FILTROS ---
     async function cargarProductos() {
       try {
         const res = await API.get("productos/");
         productosCache = normalizarLista(res);
         
+        // 1. Llenar los filtros (selects)
         poblarFiltros();
-        renderProductos(productosCache);
+
+        // 2. Comprobar si hay parámetro en la URL
+        const params = new URLSearchParams(window.location.search);
+        const catParam = params.get('categoria');
+
+        if (catParam) {
+            // Pre-seleccionar la categoría si existe
+            const selectCat = document.getElementById("filtroCategoria");
+            if(selectCat) {
+                // Decodificar porque la URL puede tener %20 para espacios
+                selectCat.value = decodeURIComponent(catParam);
+            }
+            // Aplicar filtros inmediatamente
+            aplicarFiltros();
+        } else {
+            // Render normal
+            renderProductos(productosCache);
+        }
+
       } catch (err) {
         console.error("Error al cargar productos:", err);
         document.getElementById("vistaCards").innerHTML = `
@@ -203,42 +200,18 @@
     }
 
     function poblarFiltros() {
-      const cats = [...new Set(
-        productosCache.map(p => 
-          p.categoria_nombre || getNombreCampo(p.categoria, null)
-        ).filter(Boolean)
-      )];
+      const cats = [...new Set(productosCache.map(p => p.categoria_nombre || getNombreCampo(p.categoria, null)).filter(Boolean))].sort();
+      const sucs = [...new Set(productosCache.map(p => p.sucursal_nombre || getNombreCampo(p.sucursal, null)).filter(Boolean))].sort();
+      const ests = [...new Set(productosCache.map(p => p.estado_nombre || getNombreCampo(p.estado, null)).filter(Boolean))].sort();
 
-      const sucs = [...new Set(
-        productosCache.map(p =>
-          p.sucursal_nombre || getNombreCampo(p.sucursal, null)
-        ).filter(Boolean)
-      )];
+      const fill = (id, items, label) => {
+          const el = document.getElementById(id);
+          if(el) el.innerHTML = `<option value="">${label}</option>` + items.map(i => `<option value="${i}">${i}</option>`).join("");
+      };
 
-      const ests = [...new Set(
-        productosCache.map(p =>
-          p.estado_nombre || getNombreCampo(p.estado, null)
-        ).filter(Boolean)
-      )];
-
-      const filtroCategoria = document.getElementById("filtroCategoria");
-      const filtroSucursal = document.getElementById("filtroSucursal");
-      const filtroEstado = document.getElementById("filtroEstado");
-
-      if (filtroCategoria) {
-        filtroCategoria.innerHTML = `<option value="">Categoría: Todas</option>` +
-          cats.map(c => `<option value="${c}">${c}</option>`).join("");
-      }
-
-      if (filtroSucursal) {
-        filtroSucursal.innerHTML = `<option value="">Sucursal: Todas</option>` +
-          sucs.map(s => `<option value="${s}">${s}</option>`).join("");
-      }
-
-      if (filtroEstado) {
-        filtroEstado.innerHTML = `<option value="">Estado: Todos</option>` +
-          ests.map(e => `<option value="${e}">${e}</option>`).join("");
-      }
+      fill("filtroCategoria", cats, "Categoría: Todas");
+      fill("filtroSucursal", sucs, "Sucursal: Todas");
+      fill("filtroEstado", ests, "Estado: Todos");
     }
 
     function aplicarFiltros() {
@@ -251,13 +224,9 @@
         const categoriaTexto = p.categoria_nombre || getNombreCampo(p.categoria, "");
         const sucursalTexto = p.sucursal_nombre || getNombreCampo(p.sucursal, "");
         const estadoTexto = p.estado_nombre || getNombreCampo(p.estado, "");
-
         const nombreProd = p.modelo_nombre ? `${p.modelo_nombre} - ${p.nro_serie}` : p.nro_serie;
 
-        const coincideTexto = !texto ||
-          (nombreProd || "").toLowerCase().includes(texto) ||
-          (p.nro_serie || "").toLowerCase().includes(texto);
-
+        const coincideTexto = !texto || (nombreProd || "").toLowerCase().includes(texto) || (p.nro_serie || "").toLowerCase().includes(texto);
         const coincideCat = !cat || categoriaTexto === cat;
         const coincideSuc = !suc || sucursalTexto === suc;
         const coincideEst = !est || estadoTexto === est;
@@ -296,13 +265,13 @@
         const garantiaTexto = garantiaValor === null || garantiaValor === "" ? "—" : `${garantiaValor} meses`;
 
         col.innerHTML = `
-          <div class="card h-100 p-3 text-center" style="cursor:pointer;" onclick="verDetalle(${p.id})">
+          <div class="card h-100 p-3 text-center shadow-sm border-0" style="cursor:pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'" onclick="verDetalle(${p.id})">
             <div class="mb-2">
               <i class="bi bi-box-seam fs-1 text-primary"></i>
             </div>
-            <h6 class="fw-bold mb-1">${nombreProd}</h6>
+            <h6 class="fw-bold mb-1 text-truncate">${nombreProd}</h6>
             <small class="text-muted d-block mb-2">${p.nro_serie}</small>
-            <span class="badge bg-light text-dark mb-2">${categoriaTexto}</span>
+            <span class="badge bg-light text-dark mb-2 border">${categoriaTexto}</span>
             <p class="small mb-1"><strong>Sucursal:</strong> ${sucursalTexto}</p>
             <p class="small mb-1"><strong>Estado:</strong> ${estadoTexto}</p>
             <p class="small mb-0"><strong>Garantía:</strong> ${garantiaTexto}</p>
@@ -335,18 +304,12 @@
         const garantiaValor = p.garantia_meses ?? p.garantia ?? null;
         const garantiaTexto = garantiaValor === null ? "—" : `${garantiaValor} meses`;
 
-        // Construimos HTML para el QR
         let qrHtml = '<span class="text-muted small">No hay código QR disponible para este producto.</span>';
         if (p.codigo_qr) {
           const qrUrlRaw = p.codigo_qr.imagen_qr_url || p.codigo_qr.imagen_qr;
           if (qrUrlRaw) {
-            const qrFinalUrl = qrUrlRaw.startsWith("/media/")
-              ? `http://127.0.0.1:8000${qrUrlRaw}`
-              : qrUrlRaw;
-            qrHtml = `
-              <img src="${qrFinalUrl}" alt="QR del producto"
-                   style="max-width: 180px; max-height: 180px;">
-            `;
+            const qrFinalUrl = qrUrlRaw.startsWith("/media/") ? `http://127.0.0.1:8000${qrUrlRaw}` : qrUrlRaw;
+            qrHtml = `<img src="${qrFinalUrl}" alt="QR del producto" style="max-width: 180px; max-height: 180px;">`;
           }
         }
 
@@ -364,9 +327,7 @@
               <p><strong>Factura:</strong><br>${p.documento_factura || "—"}</p>
               <hr>
               <h6 class="fw-semibold mb-2">Código QR</h6>
-              <div class="text-center">
-                ${qrHtml}
-              </div>
+              <div class="text-center">${qrHtml}</div>
             </div>
           </div>
         `;
@@ -408,7 +369,6 @@
       configurarTema();
       cargarProductos();
 
-      // Event listeners para filtros
       document.getElementById("inputBuscar")?.addEventListener("input", aplicarFiltros);
       document.getElementById("filtroCategoria")?.addEventListener("change", aplicarFiltros);
       document.getElementById("filtroSucursal")?.addEventListener("change", aplicarFiltros);
