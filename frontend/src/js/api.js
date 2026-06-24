@@ -5,7 +5,7 @@
 // CONFIGURACIÓN DE PRODUCCIÓN (AWS EC2)
 // ============================================================
 // Apunta directamente a tu IP Pública de AWS en el puerto de Django
-const API_BASE_URL = "http://44.219.224.45:8000";
+const API_BASE_URL = "/api";
 
 // Prefijo de las vistas del router:
 // Proyecto: path('api/', include('app_inventario.urls'))

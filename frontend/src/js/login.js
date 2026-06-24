@@ -2,7 +2,7 @@
 // Login real contra Django + SimpleJWT
 // Distingue entre staff y no staff para redirigir a panel correspondiente.
 
-const API_BASE_URL = "http://127.0.0.1:8000/api/";
+const API_BASE_URL = "/api/";
 const LOGIN_URL = API_BASE_URL + "auth/token/";
 
 // Ajusta estas rutas a tu gusto:

@@ -21,10 +21,10 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 SECRET_KEY = 'django-insecure-8u902^nn(m9c78=xpc7y-jy!ub4l^%=14#(c2-no2fwt6^gyj7'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 # IPs permitidas (Pública, Privada, Localhost)
-ALLOWED_HOSTS = ["44.219.224.45", "100.30.244.219", "localhost", "172.31.78.16", "127.0.0.1"]
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
 
 # Application definition
 INSTALLED_APPS = [
@@ -93,12 +93,12 @@ WSGI_APPLICATION = 'inventario_project.wsgi.application'
 # Database (Producción AWS RDS)
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'dbinventario',
-        'USER': 'admincoyahue',
-        'PASSWORD': 'AdminCoyahue123',
-        'HOST': 'dbinventario.ctpsn3rs7abq.us-east-1.rds.amazonaws.com',
-        'PORT': '5432',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.environ.get('DB_NAME', 'inventario'),
+        'USER': os.environ.get('DB_USER', 'coyahue'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        'HOST': os.environ.get('DB_HOST', 'db'),
+        'PORT': '3306',
     }
 }
 
